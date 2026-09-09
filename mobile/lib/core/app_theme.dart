@@ -35,10 +35,18 @@ abstract final class AppTheme {
       scaffoldBackgroundColor: AppColors.background,
       fontFamily: 'Roboto',
       textTheme: const TextTheme(
-        headlineLarge: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -1, color: AppColors.text),
-        headlineMedium: TextStyle(fontWeight: FontWeight.w800, letterSpacing: -0.6, color: AppColors.text),
-        titleLarge: TextStyle(fontWeight: FontWeight.w700, color: AppColors.text),
-        titleMedium: TextStyle(fontWeight: FontWeight.w700, color: AppColors.text),
+        headlineLarge: TextStyle(
+            fontWeight: FontWeight.w800,
+            letterSpacing: -1,
+            color: AppColors.text),
+        headlineMedium: TextStyle(
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.6,
+            color: AppColors.text),
+        titleLarge:
+            TextStyle(fontWeight: FontWeight.w700, color: AppColors.text),
+        titleMedium:
+            TextStyle(fontWeight: FontWeight.w700, color: AppColors.text),
         bodyLarge: TextStyle(height: 1.45, color: AppColors.text),
         bodyMedium: TextStyle(height: 1.4, color: AppColors.text),
       ),
@@ -47,7 +55,8 @@ abstract final class AppTheme {
         foregroundColor: AppColors.text,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.text),
+        titleTextStyle: TextStyle(
+            fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.text),
       ),
       cardTheme: CardThemeData(
         color: Colors.white,
@@ -61,24 +70,29 @@ abstract final class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: border,
         enabledBorder: border,
-        focusedBorder: border.copyWith(borderSide: const BorderSide(color: AppColors.blue, width: 2)),
-        errorBorder: border.copyWith(borderSide: const BorderSide(color: AppColors.danger)),
+        focusedBorder: border.copyWith(
+            borderSide: const BorderSide(color: AppColors.blue, width: 2)),
+        errorBorder: border.copyWith(
+            borderSide: const BorderSide(color: AppColors.danger)),
         labelStyle: const TextStyle(color: AppColors.muted),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size(48, 52),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(48, 50),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           side: const BorderSide(color: Color(0xFFB9C8D8)),
           textStyle: const TextStyle(fontWeight: FontWeight.w700),
         ),
@@ -89,8 +103,12 @@ abstract final class AppTheme {
         indicatorColor: AppColors.sky,
         labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
               fontSize: 12,
-              fontWeight: states.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w500,
-              color: states.contains(WidgetState.selected) ? AppColors.blue : AppColors.muted,
+              fontWeight: states.contains(WidgetState.selected)
+                  ? FontWeight.w700
+                  : FontWeight.w500,
+              color: states.contains(WidgetState.selected)
+                  ? AppColors.blue
+                  : AppColors.muted,
             )),
       ),
       snackBarTheme: SnackBarThemeData(
@@ -100,4 +118,3 @@ abstract final class AppTheme {
     );
   }
 }
-
