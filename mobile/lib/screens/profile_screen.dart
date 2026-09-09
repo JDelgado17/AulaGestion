@@ -24,10 +24,16 @@ class ProfileScreen extends StatelessWidget {
               CircleAvatar(
                 radius: 40,
                 backgroundColor: AppColors.sky,
-                child: Text(_initials(user.name), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.blue)),
+                child: Text(_initials(user.name),
+                    style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.blue)),
               ),
               const SizedBox(height: 16),
-              Text(user.name, style: Theme.of(context).textTheme.titleLarge, textAlign: TextAlign.center),
+              Text(user.name,
+                  style: Theme.of(context).textTheme.titleLarge,
+                  textAlign: TextAlign.center),
               const SizedBox(height: 6),
               Text(user.email, style: const TextStyle(color: AppColors.muted)),
               const SizedBox(height: 12),
@@ -38,21 +44,34 @@ class ProfileScreen extends StatelessWidget {
         const SizedBox(height: 16),
         Card(
           child: Column(children: [
-            const ListTile(leading: Icon(Icons.school_outlined, color: AppColors.blue), title: Text('Institución'), subtitle: Text(AppConfig.institutionName)),
+            const ListTile(
+                leading: Icon(Icons.school_outlined, color: AppColors.blue),
+                title: Text('Institución'),
+                subtitle: Text(AppConfig.institutionName)),
             const Divider(height: 1, indent: 72),
-            const ListTile(leading: Icon(Icons.support_agent_rounded, color: AppColors.teal), title: Text('Soporte'), subtitle: Text(AppConfig.supportEmail)),
+            const ListTile(
+                leading:
+                    Icon(Icons.support_agent_rounded, color: AppColors.teal),
+                title: Text('Soporte'),
+                subtitle: Text(AppConfig.supportEmail)),
             const Divider(height: 1, indent: 72),
-            const ListTile(leading: Icon(Icons.shield_outlined, color: AppColors.success), title: Text('Sesión segura'), subtitle: Text('Token protegido en el dispositivo')),
+            const ListTile(
+                leading: Icon(Icons.shield_outlined, color: AppColors.success),
+                title: Text('Sesión segura'),
+                subtitle: Text('Token protegido en el dispositivo')),
           ]),
         ),
         const SizedBox(height: 20),
         OutlinedButton.icon(
-          onPressed: session.isSubmitting ? null : () => _confirmLogout(context),
+          onPressed:
+              session.isSubmitting ? null : () => _confirmLogout(context),
           icon: const Icon(Icons.logout_rounded),
           label: const Text('Cerrar sesión'),
         ),
         const SizedBox(height: 14),
-        const Text('AulaGestión · versión 1.0.0', textAlign: TextAlign.center, style: TextStyle(color: AppColors.muted, fontSize: 12)),
+        const Text('AulaGestión · versión 1.0.0',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.muted, fontSize: 12)),
       ],
     );
   }
@@ -62,12 +81,27 @@ class ProfileScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Cerrar sesión'),
-        content: const Text('¿Deseas salir de AulaGestión en este dispositivo?'),
-        actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')), FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Cerrar sesión'))],
+        content:
+            const Text('¿Deseas salir de AulaGestión en este dispositivo?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar')),
+          FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Cerrar sesión'))
+        ],
       ),
     );
-    if (confirmed == true && context.mounted) await AppScope.of(context).logout();
+    if (confirmed == true && context.mounted) {
+      await AppScope.of(context).logout();
+    }
   }
 
-  String _initials(String name) => name.split(' ').where((part) => part.isNotEmpty).take(2).map((part) => part[0].toUpperCase()).join();
+  String _initials(String name) => name
+      .split(' ')
+      .where((part) => part.isNotEmpty)
+      .take(2)
+      .map((part) => part[0].toUpperCase())
+      .join();
 }

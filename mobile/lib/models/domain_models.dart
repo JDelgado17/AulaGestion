@@ -1,5 +1,10 @@
 class AppUser {
-  const AppUser({required this.id, required this.name, required this.email, required this.role, required this.isActive});
+  const AppUser(
+      {required this.id,
+      required this.name,
+      required this.email,
+      required this.role,
+      required this.isActive});
 
   final int id;
   final String name;
@@ -54,7 +59,9 @@ class InventoryItem {
         availableQuantity: _asInt(json['available_quantity']),
         status: json['status']?.toString() ?? '',
         description: json['description']?.toString(),
-        classroom: json['classroom'] is Map ? Map<String, dynamic>.from(json['classroom']) : null,
+        classroom: json['classroom'] is Map
+            ? Map<String, dynamic>.from(json['classroom'])
+            : null,
       );
 }
 
@@ -95,7 +102,8 @@ class Classroom {
         description: json['description']?.toString(),
         inventory: (json['inventory_items'] as List? ?? [])
             .whereType<Map>()
-            .map((item) => InventoryItem.fromJson(Map<String, dynamic>.from(item)))
+            .map((item) =>
+                InventoryItem.fromJson(Map<String, dynamic>.from(item)))
             .toList(),
       );
 }
@@ -117,13 +125,19 @@ class RoomRecommendation {
   final List<String> reasons;
   final List<String> missingResources;
 
-  factory RoomRecommendation.fromJson(Map<String, dynamic> json) => RoomRecommendation(
-        classroom: Classroom.fromJson(Map<String, dynamic>.from(json['classroom'] as Map)),
+  factory RoomRecommendation.fromJson(Map<String, dynamic> json) =>
+      RoomRecommendation(
+        classroom: Classroom.fromJson(
+            Map<String, dynamic>.from(json['classroom'] as Map)),
         matchPercent: _asInt(json['match_percent']),
         matchLevel: json['match_level']?.toString() ?? '',
         isExactMatch: json['is_exact_match'] == true,
-        reasons: (json['reasons'] as List? ?? []).map((item) => item.toString()).toList(),
-        missingResources: (json['missing_resources'] as List? ?? []).map((item) => item.toString()).toList(),
+        reasons: (json['reasons'] as List? ?? [])
+            .map((item) => item.toString())
+            .toList(),
+        missingResources: (json['missing_resources'] as List? ?? [])
+            .map((item) => item.toString())
+            .toList(),
       );
 }
 
@@ -160,10 +174,19 @@ class Reservation {
         activityType: json['activity_type']?.toString() ?? '',
         purpose: json['purpose']?.toString() ?? '',
         status: json['status']?.toString() ?? '',
-        classroom: json['classroom'] is Map ? Classroom.fromJson(Map<String, dynamic>.from(json['classroom'])) : null,
-        user: json['user'] is Map ? AppUser.fromJson({...Map<String, dynamic>.from(json['user']), 'is_active': true, 'role': json['user']['role'] ?? 'professor'}) : null,
+        classroom: json['classroom'] is Map
+            ? Classroom.fromJson(Map<String, dynamic>.from(json['classroom']))
+            : null,
+        user: json['user'] is Map
+            ? AppUser.fromJson({
+                ...Map<String, dynamic>.from(json['user']),
+                'is_active': true,
+                'role': json['user']['role'] ?? 'professor'
+              })
+            : null,
         cancellationReason: json['cancellation_reason']?.toString(),
       );
 }
 
-int _asInt(dynamic value) => value is int ? value : int.tryParse(value?.toString() ?? '') ?? 0;
+int _asInt(dynamic value) =>
+    value is int ? value : int.tryParse(value?.toString() ?? '') ?? 0;
