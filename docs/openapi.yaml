@@ -1,0 +1,318 @@
+openapi: 3.1.0
+info:
+  title: AulaGestión API
+  version: 1.0.0
+  description: API REST para inventario, disponibilidad, recomendación y reserva de aulas.
+servers:
+  - url: http://127.0.0.1:8000/api
+    description: Desarrollo local
+tags:
+  - name: Autenticación
+  - name: Aulas
+  - name: Inventario
+  - name: Recomendaciones
+  - name: Reservas
+  - name: Administración
+paths:
+  /health:
+    get:
+      summary: Verificar disponibilidad de la API
+      responses:
+        "200": {description: Servicio disponible}
+  /auth/login:
+    post:
+      tags: [Autenticación]
+      summary: Iniciar sesión y emitir token Sanctum
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: {type: string, format: email, example: profesor@demo.edu.co}
+                password: {type: string, format: password, example: Demo2026*}
+                device_name: {type: string, example: flutter-app}
+      responses:
+        "200": {description: Inicio de sesión correcto}
+        "401": {description: Credenciales incorrectas}
+        "403": {description: Cuenta deshabilitada}
+  /auth/me:
+    get:
+      tags: [Autenticación]
+      security: [{sanctum: []}]
+      summary: Consultar usuario autenticado
+      responses:
+        "200": {description: Usuario actual}
+  /auth/logout:
+    post:
+      tags: [Autenticación]
+      security: [{sanctum: []}]
+      summary: Revocar el token actual
+      responses:
+        "200": {description: Sesión cerrada}
+  /dashboard:
+    get:
+      security: [{sanctum: []}]
+      summary: Indicadores del panel según el rol
+      responses:
+        "200": {description: Indicadores actuales}
+  /classrooms:
+    get:
+      tags: [Aulas]
+      security: [{sanctum: []}]
+      summary: Listar y filtrar aulas
+      parameters:
+        - {in: query, name: search, schema: {type: string}}
+        - {in: query, name: status, schema: {type: string, enum: [available, maintenance, out_of_service]}}
+      responses:
+        "200": {description: Lista paginada de aulas}
+    post:
+      tags: [Aulas, Administración]
+      security: [{sanctum: []}]
+      summary: Registrar un aula
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ClassroomInput"}
+      responses:
+        "201": {description: Aula creada}
+        "403": {description: Rol no autorizado}
+  /classrooms/{classroom}:
+    parameters:
+      - {in: path, name: classroom, required: true, schema: {type: integer}}
+    get:
+      tags: [Aulas]
+      security: [{sanctum: []}]
+      summary: Ver aula con inventario y horarios
+      responses:
+        "200": {description: Detalle del aula}
+    put:
+      tags: [Aulas, Administración]
+      security: [{sanctum: []}]
+      summary: Actualizar aula
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ClassroomInput"}
+      responses:
+        "200": {description: Aula actualizada}
+    delete:
+      tags: [Aulas, Administración]
+      security: [{sanctum: []}]
+      summary: Deshabilitar aula sin borrar historial
+      responses:
+        "200": {description: Aula deshabilitada}
+  /inventory:
+    get:
+      tags: [Inventario]
+      security: [{sanctum: []}]
+      summary: Listar inventario
+      parameters:
+        - {in: query, name: classroom_id, schema: {type: integer}}
+        - {in: query, name: status, schema: {type: string}}
+      responses:
+        "200": {description: Inventario paginado}
+    post:
+      tags: [Inventario]
+      security: [{sanctum: []}]
+      summary: Registrar elemento
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/InventoryInput"}
+      responses:
+        "201": {description: Elemento creado}
+  /inventory/{item}:
+    parameters:
+      - {in: path, name: item, required: true, schema: {type: integer}}
+    get:
+      tags: [Inventario]
+      security: [{sanctum: []}]
+      summary: Consultar elemento e historial
+      responses:
+        "200": {description: Detalle del elemento}
+    put:
+      tags: [Inventario]
+      security: [{sanctum: []}]
+      summary: Actualizar elemento
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/InventoryInput"}
+      responses:
+        "200": {description: Elemento actualizado}
+  /inventory/{item}/events:
+    post:
+      tags: [Inventario]
+      security: [{sanctum: []}]
+      summary: Registrar una novedad trazable
+      parameters:
+        - {in: path, name: item, required: true, schema: {type: integer}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, description]
+              properties:
+                type: {type: string, enum: [damage, missing, transfer, maintenance, recovery, adjustment]}
+                description: {type: string}
+                quantity_delta: {type: integer}
+                new_status: {type: string}
+      responses:
+        "201": {description: Novedad creada e inventario actualizado}
+  /recommendations/search:
+    post:
+      tags: [Recomendaciones]
+      security: [{sanctum: []}]
+      summary: Buscar y puntuar aulas disponibles
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/SearchCriteria"}
+      responses:
+        "200": {description: Recomendaciones exactas y alternativas}
+  /reservations:
+    get:
+      tags: [Reservas]
+      security: [{sanctum: []}]
+      summary: Consultar reservas según permisos
+      responses:
+        "200": {description: Reservas paginadas}
+    post:
+      tags: [Reservas]
+      security: [{sanctum: []}]
+      summary: Confirmar una reserva con revalidación transaccional
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - {$ref: "#/components/schemas/SearchCriteria"}
+                - type: object
+                  required: [classroom_id, purpose]
+                  properties:
+                    classroom_id: {type: integer}
+                    purpose: {type: string}
+      responses:
+        "201": {description: Reserva confirmada}
+        "409": {description: La disponibilidad cambió o existe un cruce}
+  /reservations/{reservation}/cancel:
+    patch:
+      tags: [Reservas]
+      security: [{sanctum: []}]
+      summary: Cancelar reserva y liberar franja
+      parameters:
+        - {in: path, name: reservation, required: true, schema: {type: integer}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: {type: string, minLength: 5}
+      responses:
+        "200": {description: Reserva cancelada}
+  /users:
+    get:
+      tags: [Administración]
+      security: [{sanctum: []}]
+      summary: Listar usuarios
+      responses:
+        "200": {description: Usuarios paginados}
+    post:
+      tags: [Administración]
+      security: [{sanctum: []}]
+      summary: Registrar usuario y rol
+      responses:
+        "201": {description: Usuario creado}
+  /schedules:
+    get:
+      tags: [Administración]
+      security: [{sanctum: []}]
+      summary: Consultar horarios
+      responses:
+        "200": {description: Horarios configurados}
+    post:
+      tags: [Administración]
+      security: [{sanctum: []}]
+      summary: Configurar horario de un aula
+      responses:
+        "201": {description: Horario creado}
+  /blocks:
+    get:
+      tags: [Administración]
+      security: [{sanctum: []}]
+      summary: Consultar bloqueos
+      responses:
+        "200": {description: Bloqueos paginados}
+    post:
+      tags: [Administración]
+      security: [{sanctum: []}]
+      summary: Bloquear aula por mantenimiento o evento
+      responses:
+        "201": {description: Bloqueo creado}
+  /notifications:
+    get:
+      security: [{sanctum: []}]
+      summary: Consultar notificaciones del usuario
+      responses:
+        "200": {description: Notificaciones paginadas}
+  /reports/summary:
+    get:
+      tags: [Administración, Inventario]
+      security: [{sanctum: []}]
+      summary: Generar reporte de utilización e inventario
+      responses:
+        "200": {description: Indicadores y agrupaciones}
+components:
+  securitySchemes:
+    sanctum:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum
+  schemas:
+    ClassroomInput:
+      type: object
+      required: [code, name, location, capacity, type, status]
+      properties:
+        code: {type: string, example: A-101}
+        name: {type: string, example: Aula Interactiva}
+        location: {type: string, example: Bloque A - Piso 1}
+        capacity: {type: integer, minimum: 1, example: 30}
+        type: {type: string, example: Clase interactiva}
+        description: {type: [string, "null"]}
+        status: {type: string, enum: [available, maintenance, out_of_service]}
+        is_active: {type: boolean, default: true}
+    InventoryInput:
+      type: object
+      required: [classroom_id, name, category, quantity, available_quantity, status]
+      properties:
+        classroom_id: {type: integer}
+        name: {type: string, example: Videobeam}
+        category: {type: string, example: Tecnología}
+        quantity: {type: integer, minimum: 0}
+        available_quantity: {type: integer, minimum: 0}
+        status: {type: string, enum: [available, loaned, maintenance, damaged, out_of_service]}
+        description: {type: [string, "null"]}
+    SearchCriteria:
+      type: object
+      required: [starts_at, ends_at, attendees, activity_type]
+      properties:
+        starts_at: {type: string, format: date-time}
+        ends_at: {type: string, format: date-time}
+        attendees: {type: integer, minimum: 1}
+        activity_type: {type: string}
+        required_resources: {type: array, items: {type: string}}
+        optional_resources: {type: array, items: {type: string}}

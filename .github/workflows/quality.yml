@@ -1,0 +1,44 @@
+name: Calidad del proyecto
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, pdo_sqlite
+          coverage: none
+      - uses: ramsey/composer-install@v3
+        with:
+          working-directory: backend
+      - run: cp .env.example .env
+      - run: php artisan key:generate
+      - run: vendor/bin/pint
+      - run: php artisan test
+
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart format lib test
+      - run: flutter analyze
+      - run: flutter test

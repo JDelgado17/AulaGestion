@@ -1,0 +1,50 @@
+{
+  "info": {
+    "name": "AulaGestión API",
+    "description": "Pruebas funcionales de los 12 requerimientos consolidados.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]},
+  "item": [
+    {
+      "name": "01 - Autenticación",
+      "item": [
+        {"name": "Health", "request": {"auth": {"type": "noauth"}, "method": "GET", "url": "{{base_url}}/health"}},
+        {"name": "Login profesor", "event": [{"listen": "test", "script": {"exec": ["const body = pm.response.json();", "if (body.data?.token) pm.environment.set('token', body.data.token);"]}}], "request": {"auth": {"type": "noauth"}, "method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"email\": \"profesor@demo.edu.co\",\n  \"password\": \"Demo2026*\",\n  \"device_name\": \"postman\"\n}"}, "url": "{{base_url}}/auth/login"}},
+        {"name": "Mi perfil", "request": {"method": "GET", "url": "{{base_url}}/auth/me"}},
+        {"name": "Logout", "request": {"method": "POST", "url": "{{base_url}}/auth/logout"}}
+      ]
+    },
+    {
+      "name": "02 - Aulas y recomendación",
+      "item": [
+        {"name": "Listar aulas", "request": {"method": "GET", "url": "{{base_url}}/classrooms?active_only=1"}},
+        {"name": "Detalle de aula", "request": {"method": "GET", "url": "{{base_url}}/classrooms/{{classroom_id}}"}},
+        {"name": "Buscar recomendaciones", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"starts_at\": \"2027-02-08T08:00:00-05:00\",\n  \"ends_at\": \"2027-02-08T10:00:00-05:00\",\n  \"attendees\": 25,\n  \"activity_type\": \"Clase\",\n  \"required_resources\": [\"Videobeam\"],\n  \"optional_resources\": [\"Televisor\"]\n}"}, "url": "{{base_url}}/recommendations/search"}}
+      ]
+    },
+    {
+      "name": "03 - Reservas",
+      "item": [
+        {"name": "Crear reserva", "event": [{"listen": "test", "script": {"exec": ["const body = pm.response.json();", "if (body.data?.id) pm.environment.set('reservation_id', body.data.id);"]}}], "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"classroom_id\": {{classroom_id}},\n  \"starts_at\": \"2027-02-08T08:00:00-05:00\",\n  \"ends_at\": \"2027-02-08T10:00:00-05:00\",\n  \"attendees\": 25,\n  \"activity_type\": \"Clase\",\n  \"required_resources\": [\"Videobeam\"],\n  \"optional_resources\": [],\n  \"purpose\": \"Demostración del aplicativo\"\n}"}, "url": "{{base_url}}/reservations"}},
+        {"name": "Mis reservas", "request": {"method": "GET", "url": "{{base_url}}/reservations"}},
+        {"name": "Cancelar reserva", "request": {"method": "PATCH", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"reason\": \"Cambio de programación académica\"}"}, "url": "{{base_url}}/reservations/{{reservation_id}}/cancel"}}
+      ]
+    },
+    {
+      "name": "04 - Inventario",
+      "item": [
+        {"name": "Consultar inventario", "request": {"method": "GET", "url": "{{base_url}}/inventory?classroom_id={{classroom_id}}"}},
+        {"name": "Registrar novedad", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"type\": \"maintenance\",\n  \"description\": \"Revisión preventiva registrada desde Postman\",\n  \"quantity_delta\": -1,\n  \"new_status\": \"maintenance\"\n}"}, "url": "{{base_url}}/inventory/{{inventory_item_id}}/events"}}
+      ]
+    },
+    {
+      "name": "05 - Seguimiento",
+      "item": [
+        {"name": "Dashboard", "request": {"method": "GET", "url": "{{base_url}}/dashboard"}},
+        {"name": "Notificaciones", "request": {"method": "GET", "url": "{{base_url}}/notifications"}},
+        {"name": "Reporte", "request": {"method": "GET", "url": "{{base_url}}/reports/summary"}}
+      ]
+    }
+  ]
+}
