@@ -8,4 +8,3 @@ abstract final class AppConfig {
     defaultValue: 'http://10.0.2.2:8000/api',
   );
 }
-

@@ -4,7 +4,8 @@ import '../core/api_client.dart';
 import '../models/domain_models.dart';
 
 class AuthRepository {
-  AuthRepository(this.client, {FlutterSecureStorage? storage}) : _storage = storage ?? const FlutterSecureStorage();
+  AuthRepository(this.client, {FlutterSecureStorage? storage})
+      : _storage = storage ?? const FlutterSecureStorage();
 
   static const _tokenKey = 'aula_gestion_token';
   final ApiClient client;
@@ -17,7 +18,8 @@ class AuthRepository {
   }
 
   Future<AppUser> login(String email, String password) async {
-    final data = Map<String, dynamic>.from(await client.post('/auth/login', body: {
+    final data =
+        Map<String, dynamic>.from(await client.post('/auth/login', body: {
       'email': email.trim().toLowerCase(),
       'password': password,
       'device_name': 'aula-gestion-flutter',
@@ -42,4 +44,3 @@ class AuthRepository {
     }
   }
 }
-

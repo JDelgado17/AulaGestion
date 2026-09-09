@@ -53,7 +53,8 @@ class AppSession extends ChangeNotifier {
 }
 
 class AppScope extends InheritedNotifier<AppSession> {
-  const AppScope({required AppSession session, required super.child, super.key}) : super(notifier: session);
+  const AppScope({required AppSession session, required super.child, super.key})
+      : super(notifier: session);
 
   static AppSession of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<AppScope>();
@@ -61,4 +62,3 @@ class AppScope extends InheritedNotifier<AppSession> {
     return scope!.notifier!;
   }
 }
-

@@ -22,7 +22,8 @@ Future<void> main() async {
 }
 
 class AulaGestionApp extends StatelessWidget {
-  const AulaGestionApp({required this.session, required this.repository, super.key});
+  const AulaGestionApp(
+      {required this.session, required this.repository, super.key});
 
   final AppSession session;
   final SchoolRepository repository;
@@ -46,7 +47,8 @@ class AulaGestionApp extends StatelessWidget {
           listenable: session,
           builder: (context, _) {
             if (session.isInitializing) {
-              return const Scaffold(body: Center(child: CircularProgressIndicator()));
+              return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()));
             }
             if (!session.isAuthenticated) return const LoginScreen();
             return MainShell(repository: repository);
