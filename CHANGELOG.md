@@ -1,5 +1,11 @@
 # Registro de cambios
 
+## 1.0.1 - 2026-10-27
+
+- App Android lista para instalarse como APK: permiso de Internet, tráfico HTTP en red local y nombre "AulaGestión".
+- Corrección de desbordes en la barra superior con ventanas pequeñas.
+- Formato del backend con Pint para cumplir el CI.
+
 ## 1.0.0 - 2026-09-07
 
 - Autenticación Sanctum y autorización por roles.
