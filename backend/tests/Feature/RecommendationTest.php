@@ -57,7 +57,7 @@ class RecommendationTest extends TestCase
             'classroom_id' => $room->id, 'weekday' => $weekday,
             'start_time' => '07:00', 'end_time' => '19:00', 'is_active' => true,
         ]);
+
         return $room;
     }
 }
-

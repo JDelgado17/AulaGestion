@@ -33,4 +33,3 @@ class NotificationController extends Controller
         return $this->success(null, 'Notificaciones actualizadas.');
     }
 }
-

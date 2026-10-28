@@ -81,4 +81,3 @@ class UserController extends Controller
         return $this->success($user, 'Usuario deshabilitado correctamente.');
     }
 }
-

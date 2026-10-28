@@ -16,4 +16,3 @@ class AppServiceProvider extends ServiceProvider
         // Punto de extensión para políticas institucionales futuras.
     }
 }
-

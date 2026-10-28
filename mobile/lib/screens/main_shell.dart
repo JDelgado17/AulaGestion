@@ -50,13 +50,23 @@ class _MainShellState extends State<MainShell> {
     ];
 
     return LayoutBuilder(builder: (context, constraints) {
+      // En Flutter Web la vista puede medir ~1x1 px durante un instante
+      // (al abrir/cerrar DevTools o cambiar el modo responsive). Con ese
+      // tamaño la AppBar no cabe y lanza "RenderFlex overflowed".
+      // Mientras la ventana no tenga un tamaño real, no se dibuja nada.
+      if (constraints.maxWidth < 120 || constraints.maxHeight < 120) {
+        return const SizedBox.shrink();
+      }
       final wide = constraints.maxWidth >= 900;
       return Scaffold(
         appBar: AppBar(
           title: const Row(children: [
             AppLogo(size: 38),
             SizedBox(width: 12),
-            Text(AppConfig.appName)
+            Flexible(
+              child: Text(AppConfig.appName,
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
           ]),
           actions: [
             IconButton(

@@ -30,4 +30,3 @@ class InventoryItem extends Model
         return $this->hasMany(InventoryEvent::class);
     }
 }
-

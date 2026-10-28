@@ -22,4 +22,3 @@ abstract class Controller
         ], $status);
     }
 }
-

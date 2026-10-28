@@ -54,4 +54,3 @@ class AuthController extends Controller
         return $this->success(null, 'Sesión cerrada correctamente.');
     }
 }
-

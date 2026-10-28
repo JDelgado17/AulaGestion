@@ -35,4 +35,3 @@ class RecommendationController extends Controller
         );
     }
 }
-

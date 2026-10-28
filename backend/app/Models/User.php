@@ -13,7 +13,9 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable;
 
     public const ROLE_ADMIN = 'admin';
+
     public const ROLE_PROFESSOR = 'professor';
+
     public const ROLE_INVENTORY = 'inventory';
 
     protected $fillable = ['name', 'email', 'password', 'role', 'is_active'];
@@ -44,4 +46,3 @@ class User extends Authenticatable
         return in_array($this->role, $roles, true);
     }
 }
-

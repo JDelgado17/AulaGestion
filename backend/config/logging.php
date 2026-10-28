@@ -12,4 +12,3 @@ return [
         'null' => ['driver' => 'monolog', 'handler' => NullHandler::class],
     ],
 ];
-

@@ -39,4 +39,3 @@ class Classroom extends Model
         return $this->hasMany(Reservation::class);
     }
 }
-

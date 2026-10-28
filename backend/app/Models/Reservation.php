@@ -38,4 +38,3 @@ class Reservation extends Model
         return $this->belongsTo(Classroom::class);
     }
 }
-

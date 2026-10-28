@@ -9,4 +9,3 @@ return [
     ],
     'prefix' => env('CACHE_PREFIX', 'aula_gestion_cache_'),
 ];
-

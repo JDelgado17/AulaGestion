@@ -46,4 +46,3 @@ class AuthTest extends TestCase
         ])->assertForbidden();
     }
 }
-

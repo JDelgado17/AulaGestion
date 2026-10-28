@@ -14,4 +14,3 @@ return [
     'previous_keys' => array_filter(explode(',', env('APP_PREVIOUS_KEYS', ''))),
     'maintenance' => ['driver' => 'file', 'store' => 'database'],
 ];
-

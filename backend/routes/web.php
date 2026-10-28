@@ -6,4 +6,3 @@ Route::get('/', fn () => response()->json([
     'name' => 'AulaGestión API',
     'status' => 'online',
 ]));
-

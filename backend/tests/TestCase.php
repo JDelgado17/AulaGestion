@@ -8,4 +8,3 @@ abstract class TestCase extends BaseTestCase
 {
     // Laravel 13 descubre bootstrap/app.php automáticamente.
 }
-

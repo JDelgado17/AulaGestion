@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\ClassroomBlock;
 use App\Models\ClassroomSchedule;
+use App\Models\Reservation;
 use App\Services\AuditService;
 use Illuminate\Http\Request;
 
@@ -68,7 +69,7 @@ class ScheduleController extends Controller
             'reason' => ['required', 'string', 'max:255'],
         ]);
 
-        $overlapsReservation = \App\Models\Reservation::where('classroom_id', $data['classroom_id'])
+        $overlapsReservation = Reservation::where('classroom_id', $data['classroom_id'])
             ->where('status', 'confirmed')
             ->where('starts_at', '<', $data['ends_at'])
             ->where('ends_at', '>', $data['starts_at'])
@@ -103,4 +104,3 @@ class ScheduleController extends Controller
         ]);
     }
 }
-
