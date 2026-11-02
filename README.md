@@ -78,6 +78,8 @@ En producción no existe un archivo `.env`: las mismas variables se definen en e
 
 ## Despliegue en la nube (Render + Aiven)
 
+API pública: <https://aulagestion-api.onrender.com/api/health>
+
 La API corre gratis en [Render](https://render.com) con el `backend/Dockerfile`, y la base MySQL en [Aiven](https://aiven.io) (plan Free).
 
 1. En Aiven, crear un servicio MySQL Free y descargar su certificado `ca.pem`.
