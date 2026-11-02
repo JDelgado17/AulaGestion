@@ -58,14 +58,40 @@ En otra terminal:
 
 ```bash
 cd mobile
-flutter create --platforms=android .
 flutter pub get
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000/api
 ```
 
-El comando `flutter create` genera únicamente la carpeta nativa de Android correspondiente a la versión de Flutter instalada; el código profesional del aplicativo está en `lib/`.
-
 `10.0.2.2` permite que el emulador Android acceda al servidor del computador. En un dispositivo físico, reemplázalo por la IP local del computador, por ejemplo `http://192.168.1.20:8000/api`.
+
+## Configuración (.env)
+
+El archivo `backend/.env` **no se sube a GitHub** porque contiene contraseñas y la llave de cifrado (está en `.gitignore`). En su lugar se publica la plantilla [`backend/.env.example`](backend/.env.example), con un comentario por variable. Para crear el `.env` local:
+
+```bash
+cd backend
+cp .env.example .env
+php artisan key:generate
+```
+
+En producción no existe un archivo `.env`: las mismas variables se definen en el panel **Environment** de Render.
+
+## Despliegue en la nube (Render + Aiven)
+
+La API corre gratis en [Render](https://render.com) con el `backend/Dockerfile`, y la base MySQL en [Aiven](https://aiven.io) (plan Free).
+
+1. En Aiven, crear un servicio MySQL Free y descargar su certificado `ca.pem`.
+2. En Render, crear un **Web Service** desde este repositorio: Root Directory `backend`, Runtime Docker, plan Free.
+3. En **Environment**, definir `APP_ENV=production`, `APP_DEBUG=false`, `APP_KEY`, `LOG_CHANNEL=stderr`, `DB_*` (datos de Aiven), `MYSQL_ATTR_SSL_CA=/etc/secrets/ca.pem` y, solo en el primer despliegue, `SEED_DEMO=true`.
+4. En **Secret Files**, subir `ca.pem`.
+5. Generar el APK apuntando a la URL pública:
+
+```bash
+cd mobile
+flutter build apk --release --dart-define=API_BASE_URL=https://<servicio>.onrender.com/api
+```
+
+El plan gratuito de Render suspende la API tras 15 minutos sin uso; la primera petición posterior tarda cerca de un minuto.
 
 ## Usuarios de demostración
 

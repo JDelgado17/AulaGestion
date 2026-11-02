@@ -1,5 +1,12 @@
 # Registro de cambios
 
+## 1.1.0 - 2026-11-02
+
+- Despliegue gratuito en la nube: API en Render (Dockerfile) y MySQL en Aiven con SSL.
+- La API confía en el proxy HTTPS de Render.
+- El APK de release solo usa HTTPS; el tráfico HTTP queda permitido únicamente en desarrollo.
+- Plantilla `.env.example` comentada y sección de configuración en el README.
+
 ## 1.0.1 - 2026-10-27
 
 - App Android lista para instalarse como APK: permiso de Internet, tráfico HTTP en red local y nombre "AulaGestión".

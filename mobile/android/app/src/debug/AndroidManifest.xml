@@ -4,4 +4,7 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Solo en desarrollo: permite HTTP hacia la API local (10.0.2.2 o la IP
+         del portátil). El APK de release usa únicamente HTTPS. -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>
