@@ -645,16 +645,24 @@ void showNotice(BuildContext context,
         Icon(icon, color: Colors.white),
         const SizedBox(width: 12),
         Expanded(
+            // Con letra grande el texto se desplaza en lugar de empujar el aviso
+            // fuera de la pantalla.
+            child: ConstrainedBox(
+          constraints:
+              BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * .3),
+          child: SingleChildScrollView(
             child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-              Text(title,
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 2),
-              Text(message, style: const TextStyle(color: Colors.white)),
-            ])),
+                  Text(title,
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 2),
+                  Text(message, style: const TextStyle(color: Colors.white)),
+                ]),
+          ),
+        )),
       ]),
     ));
 }

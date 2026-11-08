@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/health', fn () => response()->json([
     'success' => true,
     'message' => 'AulaGestión API disponible.',
-    'data' => ['version' => '1.0.0', 'timestamp' => now()->toIso8601String()],
+    'data' => ['version' => '1.2.1', 'timestamp' => now()->toIso8601String()],
 ]));
 
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');

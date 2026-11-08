@@ -333,9 +333,15 @@ var _realFonts = false;
 
 /// Carga la fuente real de Android para medir los textos como en el celular.
 Future<void> _loadFonts() async {
-  final fonts =
-      '${Platform.environment['FLUTTER_ROOT']}/bin/cache/artifacts/material_fonts';
-  if (!File('$fonts/roboto-regular.ttf').existsSync()) return;
+  // Se ubica desde el ejecutable de pruebas, que está dentro del SDK de Flutter:
+  // así funciona igual en el computador y en GitHub Actions.
+  var folder = File(Platform.resolvedExecutable).parent;
+  while (
+      !File('${folder.path}/material_fonts/roboto-regular.ttf').existsSync()) {
+    if (folder.path == folder.parent.path) return;
+    folder = folder.parent;
+  }
+  final fonts = '${folder.path}/material_fonts';
   _realFonts = true;
   Future<ByteData> read(String name) async =>
       ByteData.sublistView(await File('$fonts/$name').readAsBytes());
