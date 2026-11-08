@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../core/app_theme.dart';
+import '../core/catalogs.dart';
 import '../models/domain_models.dart';
 import '../repositories/school_repository.dart';
 import '../widgets/common_widgets.dart';
@@ -17,29 +20,17 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _attendees = TextEditingController(text: '25');
-  final _activity = TextEditingController(text: 'Clase');
+  final _attendees = TextEditingController();
+  String _activity = Catalogs.activities.first;
   DateTime _date = DateTime.now().add(const Duration(days: 1));
   TimeOfDay _start = const TimeOfDay(hour: 8, minute: 0);
   TimeOfDay _end = const TimeOfDay(hour: 10, minute: 0);
-  final Set<String> _required = {'Videobeam'};
-  final Set<String> _optional = {'Televisor'};
-  bool _loading = false;
-
-  static const resources = [
-    'Videobeam',
-    'Televisor',
-    'Computador',
-    'Parlantes',
-    'Aire acondicionado',
-    'Tablero acrílico',
-    'Microscopio'
-  ];
+  final Set<String> _required = {};
+  final Set<String> _optional = {};
 
   @override
   void dispose() {
     _attendees.dispose();
-    _activity.dispose();
     super.dispose();
   }
 
@@ -64,32 +55,29 @@ class _SearchScreenState extends State<SearchScreen> {
       'starts_at': startsAt.toIso8601String(),
       'ends_at': endsAt.toIso8601String(),
       'attendees': int.parse(_attendees.text),
-      'activity_type': _activity.text.trim(),
+      'activity_type': _activity,
       'required_resources': _required.toList(),
       'optional_resources': _optional.toList(),
     };
-    setState(() => _loading = true);
     try {
       final result = await widget.repository.recommendations(criteria);
       if (mounted) {
-        await Navigator.push(
+        unawaited(Navigator.push(
             context,
             MaterialPageRoute(
                 builder: (_) => RecommendationResultsScreen(
                     repository: widget.repository,
                     criteria: criteria,
-                    result: result)));
+                    result: result))));
       }
     } catch (error) {
       if (mounted) showMessage(context, formatApiError(error), error: true);
-    } finally {
-      if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Buscar aula')),
+        appBar: AppBar(title: const AppBarTitle('Buscar aula')),
         body: PageBody(
           child: Form(
             key: _formKey,
@@ -108,79 +96,80 @@ class _SearchScreenState extends State<SearchScreen> {
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                        Text('Recomendación inteligente',
+                        Text('Encuentra tu aula ideal',
                             style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800)),
                         SizedBox(height: 4),
                         Text(
-                            'La decisión se explica con reglas verificables de capacidad, horario e inventario.',
+                            'Dinos qué necesitas y te mostramos las aulas libres que mejor se ajustan, y por qué.',
                             style: TextStyle(color: Colors.white70))
                       ])),
                 ]),
               ),
               const SizedBox(height: 24),
               const SectionHeader(
-                  title: '1. Fecha y franja',
-                  subtitle: 'Elige cuándo necesitas el espacio'),
+                  title: '1. ¿Cuándo?',
+                  subtitle: 'Fecha y horario en que necesitas el aula'),
               const SizedBox(height: 12),
               _pickerTile(Icons.calendar_today_outlined, 'Fecha',
                   DateFormat('EEEE, d MMMM y', 'es').format(_date), _pickDate),
               const SizedBox(height: 10),
-              Row(children: [
-                Expanded(
-                    child: _pickerTile(Icons.schedule_rounded, 'Inicio',
-                        _start.format(context), () => _pickTime(true))),
-                const SizedBox(width: 10),
-                Expanded(
-                    child: _pickerTile(Icons.schedule_rounded, 'Final',
-                        _end.format(context), () => _pickTime(false))),
+              AdaptiveRow(children: [
+                _pickerTile(Icons.schedule_rounded, 'Inicio',
+                    _start.format(context), () => _pickTime(true)),
+                _pickerTile(Icons.schedule_rounded, 'Final',
+                    _end.format(context), () => _pickTime(false)),
               ]),
               const SizedBox(height: 24),
               const SectionHeader(
-                  title: '2. Actividad',
-                  subtitle: 'Indica el grupo y el propósito académico'),
+                  title: '2. ¿Para qué?',
+                  subtitle: 'Con esto priorizamos las aulas más adecuadas'),
               const SizedBox(height: 12),
-              Row(children: [
-                Expanded(
-                    child: TextFormField(
-                        controller: _attendees,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                            labelText: 'Estudiantes',
-                            prefixIcon: Icon(Icons.groups_2_outlined)),
-                        validator: (value) {
-                          final number = int.tryParse(value ?? '');
-                          return number == null || number < 1
-                              ? 'Cantidad inválida'
-                              : null;
-                        })),
-                const SizedBox(width: 10),
-                Expanded(
-                    flex: 2,
-                    child: TextFormField(
-                        controller: _activity,
-                        decoration: const InputDecoration(
-                            labelText: 'Tipo de actividad',
-                            prefixIcon: Icon(Icons.school_outlined)),
-                        validator: (value) => (value?.trim().isEmpty ?? true)
-                            ? 'Campo obligatorio'
-                            : null)),
+              AdaptiveRow(flex: const [
+                1,
+                2
+              ], children: [
+                TextFormField(
+                    controller: _attendees,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                        labelText: 'Asistentes',
+                        hintText: 'Ej.: 25',
+                        helperText: 'Cuántas personas estarán en el aula.',
+                        prefixIcon: Icon(Icons.groups_2_outlined)),
+                    validator: (value) {
+                      final number = int.tryParse(value ?? '');
+                      return number == null || number < 1
+                          ? 'Escribe cuántas personas asistirán'
+                          : null;
+                    }),
+                AppDropdown<String>(
+                    initialValue: _activity,
+                    decoration: const InputDecoration(
+                        labelText: 'Actividad',
+                        prefixIcon: Icon(Icons.school_outlined)),
+                    items: Catalogs.activities
+                        .map((activity) => DropdownMenuItem(
+                            value: activity, child: Text(activity)))
+                        .toList(),
+                    onChanged: (value) => setState(() => _activity = value!)),
               ]),
               const SizedBox(height: 24),
               const SectionHeader(
-                  title: '3. Recursos',
-                  subtitle:
-                      'Los obligatorios filtran; los opcionales mejoran la puntuación'),
+                  title: '3. ¿Qué necesitas en el aula?',
+                  subtitle: 'Si no necesitas nada en especial, déjalo vacío'),
               const SizedBox(height: 14),
-              Text('Obligatorios',
+              Text('Indispensable',
                   style: Theme.of(context).textTheme.titleMedium),
+              const Text('Solo verás aulas que lo tengan.',
+                  style: TextStyle(color: AppColors.muted)),
               const SizedBox(height: 8),
               Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: resources
+                  children: Catalogs.searchableResources
                       .map((resource) => FilterChip(
                           selected: _required.contains(resource),
                           label: Text(resource),
@@ -197,13 +186,15 @@ class _SearchScreenState extends State<SearchScreen> {
                               })))
                       .toList()),
               const SizedBox(height: 18),
-              Text('Opcionales',
+              Text('Sería bueno tener',
                   style: Theme.of(context).textTheme.titleMedium),
+              const Text('Las aulas que lo tengan aparecen primero.',
+                  style: TextStyle(color: AppColors.muted)),
               const SizedBox(height: 8),
               Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: resources
+                  children: Catalogs.searchableResources
                       .map((resource) => FilterChip(
                           selected: _optional.contains(resource),
                           label: Text(resource),
@@ -216,17 +207,11 @@ class _SearchScreenState extends State<SearchScreen> {
                                   })))
                       .toList()),
               const SizedBox(height: 28),
-              FilledButton.icon(
-                  onPressed: _loading ? null : _searchRooms,
-                  icon: _loading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.search_rounded),
-                  label: Text(
-                      _loading ? 'Analizando aulas…' : 'Buscar mejores aulas')),
+              LoadingButton(
+                  label: 'Buscar aulas',
+                  loadingLabel: 'Analizando aulas…',
+                  icon: Icons.search_rounded,
+                  onPressed: _searchRooms),
             ]),
           ),
         ),
@@ -252,8 +237,6 @@ class _SearchScreenState extends State<SearchScreen> {
                               color: AppColors.muted, fontSize: 12)),
                       const SizedBox(height: 2),
                       Text(value,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontWeight: FontWeight.w700))
                     ])),
                 const Icon(Icons.expand_more_rounded)
@@ -298,7 +281,7 @@ class RecommendationResultsScreen extends StatelessWidget {
         .map((item) => Map<String, dynamic>.from(item))
         .toList();
     return Scaffold(
-      appBar: AppBar(title: const Text('Aulas recomendadas')),
+      appBar: AppBar(title: const AppBarTitle('Aulas recomendadas')),
       body: PageBody(
         child: ListView(children: [
           Container(
@@ -330,7 +313,7 @@ class RecommendationResultsScreen extends StatelessWidget {
                 icon: Icons.search_off_rounded,
                 title: 'No hay aulas disponibles',
                 message:
-                    'Modifica la fecha, el horario, la cantidad de estudiantes o los recursos.')
+                    'Prueba con otra fecha u horario, menos asistentes o menos recursos.')
           else
             ...items.asMap().entries.map((entry) => Padding(
                 padding: const EdgeInsets.only(bottom: 14),
@@ -342,8 +325,8 @@ class RecommendationResultsScreen extends StatelessWidget {
           if (alternativeTimes.isNotEmpty) ...[
             const SizedBox(height: 12),
             const SectionHeader(
-                title: 'Horarios alternativos',
-                subtitle: 'Franjas verificadas con coincidencias exactas'),
+                title: 'Otros horarios con aulas libres',
+                subtitle: 'Cumplen todo lo que marcaste como indispensable'),
             const SizedBox(height: 12),
             ...alternativeTimes.map((slot) {
               final start =
@@ -358,8 +341,7 @@ class RecommendationResultsScreen extends StatelessWidget {
                       title: Text(DateFormat('EEEE d MMMM', 'es').format(start),
                           style: const TextStyle(fontWeight: FontWeight.w700)),
                       subtitle: Text(
-                          '${DateFormat('h:mm a').format(start)} – ${DateFormat('h:mm a').format(end)}'),
-                      trailing: Text('${slot['available_rooms']} aulas')));
+                          '${DateFormat('h:mm a').format(start)} – ${DateFormat('h:mm a').format(end)} · ${slot['available_rooms']} aulas')));
             }),
           ],
         ]),
@@ -375,35 +357,31 @@ class RecommendationResultsScreen extends StatelessWidget {
 
   Future<void> _reserve(
       BuildContext context, RoomRecommendation recommendation) async {
-    final purpose = await showDialog<String>(
-        context: context, builder: (_) => const _PurposeDialog());
-    if (purpose == null || !context.mounted) return;
-    try {
-      final reservation = await repository.createReservation({
-        ...criteria,
-        'classroom_id': recommendation.classroom.id,
-        'purpose': purpose
-      });
-      if (!context.mounted) return;
-      await showDialog<void>(
-          context: context,
-          builder: (_) => AlertDialog(
-                  icon: const Icon(Icons.check_circle_rounded,
-                      color: AppColors.success, size: 52),
-                  title: const Text('¡Reserva confirmada!'),
-                  content: Text(
-                      '${recommendation.classroom.code} quedó reservada. Código de reserva: #${reservation.id}.'),
-                  actions: [
-                    FilledButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Entendido'))
-                  ]));
-      if (context.mounted) Navigator.pop(context);
-    } catch (error) {
-      if (context.mounted) {
-        showMessage(context, formatApiError(error), error: true);
-      }
-    }
+    Reservation? reservation;
+    await showDialog<bool>(
+        context: context,
+        builder: (_) => _PurposeDialog(onConfirm: (purpose) async {
+              reservation = await repository.createReservation({
+                ...criteria,
+                'classroom_id': recommendation.classroom.id,
+                'purpose': purpose
+              });
+            }));
+    if (reservation == null || !context.mounted) return;
+    await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+                icon: const Icon(Icons.check_circle_rounded,
+                    color: AppColors.success, size: 52),
+                title: const Text('¡Reserva confirmada!'),
+                content: Text(
+                    '${recommendation.classroom.code} quedó reservada. Código de reserva: #${reservation!.id}.'),
+                actions: [
+                  FilledButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: const Text('Entendido'))
+                ]));
+    if (context.mounted) Navigator.pop(context);
   }
 }
 
@@ -440,18 +418,19 @@ class _RecommendationCard extends StatelessWidget {
                       style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 5),
                   Text('${room.location} · ${room.capacity} personas',
-                      style: const TextStyle(color: AppColors.muted))
+                      style: const TextStyle(color: AppColors.muted)),
+                  const SizedBox(height: 8),
+                  Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                          color: AppColors.success.withValues(alpha: .1),
+                          borderRadius: BorderRadius.circular(12)),
+                      child: Text('${recommendation.matchPercent}%',
+                          style: const TextStyle(
+                              color: AppColors.success,
+                              fontWeight: FontWeight.w900))),
                 ])),
-            Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                    color: AppColors.success.withValues(alpha: .1),
-                    borderRadius: BorderRadius.circular(12)),
-                child: Text('${recommendation.matchPercent}%',
-                    style: const TextStyle(
-                        color: AppColors.success,
-                        fontWeight: FontWeight.w900))),
           ]),
           const SizedBox(height: 16),
           ...recommendation.reasons.map((reason) => Padding(
@@ -479,7 +458,7 @@ class _RecommendationCard extends StatelessWidget {
                   icon: const Icon(Icons.event_available_rounded),
                   label: Text(canReserve
                       ? 'Reservar esta aula'
-                      : 'Alternativa no exacta'))),
+                      : 'No tiene todo lo indispensable'))),
         ]),
       ),
     );
@@ -487,7 +466,8 @@ class _RecommendationCard extends StatelessWidget {
 }
 
 class _PurposeDialog extends StatefulWidget {
-  const _PurposeDialog();
+  const _PurposeDialog({required this.onConfirm});
+  final Future<void> Function(String purpose) onConfirm;
   @override
   State<_PurposeDialog> createState() => _PurposeDialogState();
 }
@@ -495,8 +475,15 @@ class _PurposeDialog extends StatefulWidget {
 class _PurposeDialogState extends State<_PurposeDialog> {
   final _controller = TextEditingController();
   @override
-  Widget build(BuildContext context) => AlertDialog(
-        title: const Text('Confirmar reserva'),
+  Widget build(BuildContext context) => AsyncFormDialog(
+        title: 'Confirmar reserva',
+        submitLabel: 'Confirmar',
+        onSubmit: _controller.text.trim().length < 5
+            ? null
+            : () async {
+                await widget.onConfirm(_controller.text.trim());
+                return true;
+              },
         content: TextField(
             controller: _controller,
             autofocus: true,
@@ -507,15 +494,5 @@ class _PurposeDialogState extends State<_PurposeDialog> {
                 labelText: 'Motivo de la reserva',
                 hintText: 'Ej. Taller de ciencias',
                 alignLabelWithHint: true)),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar')),
-          FilledButton(
-              onPressed: _controller.text.trim().length < 5
-                  ? null
-                  : () => Navigator.pop(context, _controller.text.trim()),
-              child: const Text('Confirmar'))
-        ],
       );
 }

@@ -9,6 +9,7 @@ use App\Models\Reservation;
 use App\Models\User;
 use App\Services\AuditService;
 use App\Services\RecommendationService;
+use App\Services\ReservationAlertService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,11 +19,12 @@ class ReservationController extends Controller
     public function __construct(
         private readonly RecommendationService $recommendations,
         private readonly AuditService $audit,
+        private readonly ReservationAlertService $alerts,
     ) {}
 
     public function index(Request $request)
     {
-        $query = Reservation::with(['classroom:id,code,name,location,capacity', 'user:id,name,email']);
+        $query = Reservation::with(['classroom:id,code,name,location,capacity,status,is_active', 'user:id,name,email']);
 
         if (! $request->user()->hasRole(User::ROLE_ADMIN)) {
             $query->where('user_id', $request->user()->id);
@@ -35,6 +37,8 @@ class ReservationController extends Controller
             ->when($request->filled('to'), fn ($builder) => $builder->where('starts_at', '<=', $request->date('to')))
             ->orderByDesc('starts_at')
             ->paginate(30);
+
+        $this->alerts->annotate($reservations->getCollection());
 
         return $this->success($reservations);
     }

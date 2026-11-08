@@ -39,12 +39,14 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(context.hasLargeText ? 12 : 24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 460),
               child: Card(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(28, 34, 28, 30),
+                  padding: context.hasLargeText
+                      ? const EdgeInsets.all(18)
+                      : const EdgeInsets.fromLTRB(28, 34, 28, 30),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -64,7 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             style: Theme.of(context).textTheme.titleLarge),
                         const SizedBox(height: 6),
                         const Text(
-                            'Ingresa con tus credenciales institucionales.',
+                            'Entra con tu correo y contraseña del colegio.',
                             style: TextStyle(color: AppColors.muted)),
                         const SizedBox(height: 22),
                         TextFormField(
@@ -146,20 +148,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               : 'Iniciar sesión'),
                         ),
                         const SizedBox(height: 18),
-                        const Row(children: [
-                          Expanded(child: Divider()),
-                          Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 10),
-                              child: Text('ACCESO SEGURO',
-                                  style: TextStyle(
-                                      fontSize: 11,
-                                      color: AppColors.muted,
-                                      letterSpacing: 1))),
-                          Expanded(child: Divider())
-                        ]),
-                        const SizedBox(height: 16),
                         const Text(
-                            'Tu sesión se protege mediante un token cifrado en el dispositivo.',
+                            '¿No puedes entrar? Escribe a ${AppConfig.supportEmail}',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                                 fontSize: 12, color: AppColors.muted)),

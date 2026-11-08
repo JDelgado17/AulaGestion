@@ -36,6 +36,8 @@ class AulaGestionApp extends StatelessWidget {
         title: AppConfig.appName,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
+        builder: (context, child) => MediaQuery.withClampedTextScaling(
+            maxScaleFactor: AppConfig.maxTextScale, child: child!),
         locale: const Locale('es', 'CO'),
         supportedLocales: const [Locale('es', 'CO'), Locale('en')],
         localizationsDelegates: const [

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/app_theme.dart';
+import '../core/catalogs.dart';
 import '../models/domain_models.dart';
 import '../repositories/school_repository.dart';
 import '../widgets/common_widgets.dart';
@@ -36,8 +37,10 @@ class _ClassroomsScreenState extends State<ClassroomsScreen> {
 
   Future<void> _load() async {
     try {
-      final rooms = await widget.repository
-          .classrooms(search: _search.text, status: _status);
+      final rooms = await widget.repository.classrooms(
+          search: _search.text,
+          status: _status,
+          includeDisabled: widget.managementMode);
       if (mounted) {
         setState(() {
           _rooms = rooms;
@@ -49,44 +52,25 @@ class _ClassroomsScreenState extends State<ClassroomsScreen> {
     }
   }
 
+  /// Vacía la lista para que se vea el indicador de carga al filtrar o buscar.
+  void _reload() {
+    setState(() => _rooms = null);
+    _load();
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
-            title: Text(widget.managementMode ? 'Administrar aulas' : 'Aulas')),
-        floatingActionButton: widget.managementMode
-            ? FloatingActionButton.extended(
-                onPressed: () => _edit(),
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Nueva aula'))
-            : null,
-        body: PageBody(
-          child: Column(children: [
-            Row(children: [
-              Expanded(
-                child: TextField(
-                  controller: _search,
-                  textInputAction: TextInputAction.search,
-                  onSubmitted: (_) => _load(),
-                  decoration: InputDecoration(
-                      hintText: 'Buscar por código, nombre o ubicación',
-                      prefixIcon: const Icon(Icons.search_rounded),
-                      suffixIcon: _search.text.isEmpty
-                          ? null
-                          : IconButton(
-                              onPressed: () {
-                                _search.clear();
-                                _load();
-                              },
-                              icon: const Icon(Icons.close_rounded))),
-                ),
-              ),
-              const SizedBox(width: 10),
+            title: AppBarTitle(
+                widget.managementMode ? 'Administrar aulas' : 'Aulas'),
+            actions: [
               PopupMenuButton<String?>(
                 tooltip: 'Filtrar por estado',
+                icon: const Icon(Icons.filter_list_rounded),
                 initialValue: _status,
                 onSelected: (value) {
-                  setState(() => _status = value);
-                  _load();
+                  _status = value;
+                  _reload();
                 },
                 itemBuilder: (_) => const [
                   PopupMenuItem(value: null, child: Text('Todos los estados')),
@@ -97,16 +81,36 @@ class _ClassroomsScreenState extends State<ClassroomsScreen> {
                       value: 'out_of_service',
                       child: Text('Fuera de servicio')),
                 ],
-                child: Container(
-                    height: 56,
-                    width: 56,
-                    decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: const Color(0xFFD7E1EC)),
-                        borderRadius: BorderRadius.circular(16)),
-                    child: const Icon(Icons.filter_list_rounded)),
               ),
             ]),
+        floatingActionButton: widget.managementMode
+            ? FloatingActionButton.extended(
+                onPressed: () => _edit(),
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Nueva aula'))
+            : null,
+        body: PageBody(
+          child: Column(children: [
+            TextField(
+              controller: _search,
+              textInputAction: TextInputAction.search,
+              onChanged: (_) => setState(() {}),
+              onSubmitted: (_) => _reload(),
+              decoration: InputDecoration(
+                  labelText: 'Buscar aula',
+                  hintText:
+                      context.hasLargeText ? null : 'Código, nombre o lugar',
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  suffixIcon: _search.text.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Limpiar búsqueda',
+                          onPressed: () {
+                            _search.clear();
+                            _reload();
+                          },
+                          icon: const Icon(Icons.close_rounded))),
+            ),
             const SizedBox(height: 18),
             Expanded(child: _content()),
           ]),
@@ -146,29 +150,33 @@ class _ClassroomsScreenState extends State<ClassroomsScreen> {
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Container(
-                width: 54,
-                height: 54,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                    color: AppColors.sky,
-                    borderRadius: BorderRadius.circular(16)),
-                child: Text(room.code.split('-').first,
-                    style: const TextStyle(
-                        color: AppColors.blue, fontWeight: FontWeight.w900)),
-              ),
-              const SizedBox(width: 14),
+              if (!context.hasLargeText) ...[
+                Container(
+                  width: 54,
+                  height: 54,
+                  padding: const EdgeInsets.all(6),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                      color: AppColors.sky,
+                      borderRadius: BorderRadius.circular(16)),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(room.code.split('-').first,
+                        style: const TextStyle(
+                            color: AppColors.blue,
+                            fontWeight: FontWeight.w900)),
+                  ),
+                ),
+                const SizedBox(width: 14),
+              ],
               Expanded(
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                    Row(children: [
-                      Expanded(
-                          child: Text('${room.code} · ${room.name}',
-                              style: Theme.of(context).textTheme.titleMedium)),
-                      const SizedBox(width: 8),
-                      StatusPill(status: room.status)
-                    ]),
+                    Text('${room.code} · ${room.name}',
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 6),
+                    _roomStatus(room),
                     const SizedBox(height: 8),
                     Wrap(spacing: 14, runSpacing: 6, children: [
                       _meta(Icons.location_on_outlined, room.location),
@@ -178,17 +186,25 @@ class _ClassroomsScreenState extends State<ClassroomsScreen> {
                     ]),
                     if (widget.managementMode) ...[
                       const SizedBox(height: 14),
-                      Row(children: [
+                      Wrap(children: [
                         TextButton.icon(
                             onPressed: () => _edit(room),
                             icon: const Icon(Icons.edit_outlined),
                             label: const Text('Editar')),
-                        TextButton.icon(
-                            onPressed: () => _disable(room),
-                            icon: const Icon(Icons.block_rounded),
-                            label: const Text('Deshabilitar'),
-                            style: TextButton.styleFrom(
-                                foregroundColor: AppColors.danger)),
+                        if (room.isActive)
+                          TextButton.icon(
+                              onPressed: () => _disable(room),
+                              icon: const Icon(Icons.block_rounded),
+                              label: const Text('Deshabilitar'),
+                              style: TextButton.styleFrom(
+                                  foregroundColor: AppColors.danger))
+                        else
+                          LoadingButton(
+                              kind: LoadingButtonKind.text,
+                              label: 'Habilitar',
+                              loadingLabel: 'Habilitando…',
+                              icon: Icons.check_circle_outline_rounded,
+                              onPressed: () => _enable(room)),
                       ]),
                     ],
                   ])),
@@ -198,11 +214,16 @@ class _ClassroomsScreenState extends State<ClassroomsScreen> {
         ),
       );
 
+  Widget _roomStatus(Classroom room) =>
+      StatusPill(status: room.isActive ? room.status : 'disabled');
+
   Widget _meta(IconData icon, String text) =>
       Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(icon, size: 17, color: AppColors.muted),
         const SizedBox(width: 5),
-        Text(text, style: const TextStyle(color: AppColors.muted, fontSize: 13))
+        Flexible(
+            child: Text(text,
+                style: const TextStyle(color: AppColors.muted, fontSize: 13)))
       ]);
 
   Future<void> _showDetails(Classroom partial) async {
@@ -242,12 +263,12 @@ class _ClassroomsScreenState extends State<ClassroomsScreen> {
                               color: const Color(0xFFD5DFE8),
                               borderRadius: BorderRadius.circular(99)))),
                   const SizedBox(height: 20),
-                  Row(children: [
-                    Expanded(
-                        child: Text('${room.code} · ${room.name}',
-                            style: Theme.of(context).textTheme.headlineMedium)),
-                    StatusPill(status: room.status)
-                  ]),
+                  Text('${room.code} · ${room.name}',
+                      style: Theme.of(context).textTheme.headlineMedium),
+                  const SizedBox(height: 8),
+                  Align(
+                      alignment: Alignment.centerLeft,
+                      child: _roomStatus(room)),
                   const SizedBox(height: 10),
                   Text(room.description ?? 'Sin descripción registrada.',
                       style: const TextStyle(color: AppColors.muted)),
@@ -277,9 +298,14 @@ class _ClassroomsScreenState extends State<ClassroomsScreen> {
                           title: Text(item.name,
                               style:
                                   const TextStyle(fontWeight: FontWeight.w700)),
-                          subtitle: Text(
-                              '${item.availableQuantity} de ${item.quantity} disponibles · ${item.category}'),
-                          trailing: StatusPill(status: item.status),
+                          subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                    '${item.availableQuantity} de ${item.quantity} disponibles · ${item.category}'),
+                                const SizedBox(height: 6),
+                                StatusPill(status: item.status),
+                              ]),
                         )),
                 ]),
           );
@@ -289,7 +315,7 @@ class _ClassroomsScreenState extends State<ClassroomsScreen> {
   }
 
   Widget _detailTile(IconData icon, String label, String value) => Container(
-        width: 210,
+        width: context.hasLargeText ? double.infinity : 210,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
             color: AppColors.background,
@@ -317,53 +343,65 @@ class _ClassroomsScreenState extends State<ClassroomsScreen> {
               : Icons.inventory_2_outlined;
 
   Future<void> _edit([Classroom? room]) async {
-    final result = await showDialog<Map<String, dynamic>>(
-        context: context, builder: (_) => _ClassroomForm(room: room));
-    if (result == null) return;
+    final saved = await showDialog<bool>(
+        context: context,
+        builder: (_) => _ClassroomForm(
+            room: room,
+            onSave: (data) async {
+              await widget.repository.saveClassroom(data, id: room?.id);
+              await _load();
+            }));
+    if (saved == true && mounted) {
+      showMessage(
+          context,
+          room == null
+              ? 'Aula registrada correctamente.'
+              : 'Aula actualizada correctamente.');
+    }
+  }
+
+  Future<void> _enable(Classroom room) async {
     try {
-      await widget.repository.saveClassroom(result, id: room?.id);
+      await widget.repository.saveClassroom({
+        'code': room.code,
+        'name': room.name,
+        'location': room.location,
+        'capacity': room.capacity,
+        'type': room.type,
+        'description': room.description,
+        'status': room.status,
+        'is_active': true,
+      }, id: room.id);
       await _load();
-      if (mounted) {
-        showMessage(
-            context,
-            room == null
-                ? 'Aula registrada correctamente.'
-                : 'Aula actualizada correctamente.');
-      }
+      if (mounted) showMessage(context, 'Aula habilitada correctamente.');
     } catch (error) {
       if (mounted) showMessage(context, formatApiError(error), error: true);
     }
   }
 
   Future<void> _disable(Classroom room) async {
-    final ok = await showDialog<bool>(
+    final done = await showDialog<bool>(
         context: context,
-        builder: (_) => AlertDialog(
-                title: const Text('Deshabilitar aula'),
-                content: Text(
-                    'El aula ${room.code} dejará de estar disponible, pero conservará su historial.'),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Cancelar')),
-                  FilledButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Deshabilitar'))
-                ]));
-    if (ok != true) return;
-    try {
-      await widget.repository.disableClassroom(room.id);
-      await _load();
-      if (mounted) showMessage(context, 'Aula deshabilitada correctamente.');
-    } catch (error) {
-      if (mounted) showMessage(context, formatApiError(error), error: true);
+        builder: (_) => AsyncFormDialog(
+            title: 'Deshabilitar aula',
+            content: Text(
+                'El aula ${room.code} dejará de estar disponible, pero conservará su historial. Quienes la tengan reservada recibirán una alerta.'),
+            submitLabel: 'Deshabilitar',
+            onSubmit: () async {
+              await widget.repository.disableClassroom(room.id);
+              await _load();
+              return true;
+            }));
+    if (done == true && mounted) {
+      showMessage(context, 'Aula deshabilitada correctamente.');
     }
   }
 }
 
 class _ClassroomForm extends StatefulWidget {
-  const _ClassroomForm({this.room});
+  const _ClassroomForm({required this.onSave, this.room});
   final Classroom? room;
+  final Future<void> Function(Map<String, dynamic> data) onSave;
 
   @override
   State<_ClassroomForm> createState() => _ClassroomFormState();
@@ -379,47 +417,86 @@ class _ClassroomFormState extends State<_ClassroomForm> {
       TextEditingController(text: widget.room?.location);
   late final TextEditingController _capacity =
       TextEditingController(text: widget.room?.capacity.toString());
-  late final TextEditingController _type =
-      TextEditingController(text: widget.room?.type);
+  late String? _type = widget.room?.type;
   late final TextEditingController _description =
       TextEditingController(text: widget.room?.description);
   late String _status = widget.room?.status ?? 'available';
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-        title: Text(widget.room == null ? 'Registrar aula' : 'Editar aula'),
-        content: SizedBox(
-          width: 520,
-          child: Form(
+  Widget build(BuildContext context) => AsyncFormDialog(
+        title: widget.room == null ? 'Registrar aula' : 'Editar aula',
+        submitLabel: 'Guardar',
+        onSubmit: _save,
+        content: Form(
             key: _key,
-            child: SingleChildScrollView(
-                child: Column(children: [
-              Row(children: [
-                Expanded(child: _field(_code, 'Código', Icons.tag_rounded)),
-                const SizedBox(width: 10),
-                Expanded(
-                    flex: 2,
-                    child: _field(_name, 'Nombre', Icons.meeting_room_outlined))
-              ]),
+            child: Column(children: [
+              _field(_code, 'Código', Icons.tag_rounded,
+                  hint: 'Ej.: A-101',
+                  helper:
+                      'Bloque o sede, un guion y el número del aula. Es único y así la identifican todos.',
+                  capitalize: TextCapitalization.characters,
+                  validator: _validateCode),
               const SizedBox(height: 12),
-              _field(_location, 'Ubicación', Icons.location_on_outlined),
+              _field(_name, 'Nombre', Icons.meeting_room_outlined,
+                  hint: 'Ej.: Sala de Informática',
+                  helper: 'Cómo la conocen en el colegio.'),
               const SizedBox(height: 12),
-              Row(children: [
-                Expanded(
-                    child: _field(
-                        _capacity, 'Capacidad', Icons.groups_2_outlined,
-                        number: true)),
-                const SizedBox(width: 10),
-                Expanded(
-                    child:
-                        _field(_type, 'Tipo de aula', Icons.category_outlined))
-              ]),
+              _field(_location, 'Ubicación', Icons.location_on_outlined,
+                  hint: 'Ej.: Bloque A, piso 2',
+                  helper:
+                      'Dónde queda, para que cualquiera pueda encontrarla.'),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
+              _field(_capacity, 'Capacidad', Icons.groups_2_outlined,
+                  number: true,
+                  hint: 'Ej.: 30',
+                  helper:
+                      'Máximo de personas que caben. No se recomendará para grupos más grandes.'),
+              const SizedBox(height: 12),
+              AppDropdown<String>(
+                  initialValue: _type,
+                  decoration: InputDecoration(
+                      labelText: 'Tipo de aula',
+                      hintText: 'Elige una opción',
+                      helperText:
+                          'Sirve para recomendarla según la actividad de cada reserva.',
+                      prefixIcon: context.hasLargeText
+                          ? null
+                          : const Icon(Icons.category_outlined)),
+                  validator: (value) =>
+                      value == null ? 'Elige el tipo de aula' : null,
+                  selectedItemBuilder: (_) =>
+                      _typeOptions.map((type) => Text(type)).toList(),
+                  items: _typeOptions
+                      .map((type) => DropdownMenuItem(
+                          value: type,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(type,
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w700)),
+                                  if (Catalogs.classroomTypes[type] != null)
+                                    Text(Catalogs.classroomTypes[type]!,
+                                        style: const TextStyle(
+                                            color: AppColors.muted,
+                                            fontSize: 12)),
+                                ]),
+                          )))
+                      .toList(),
+                  onChanged: (value) => setState(() => _type = value)),
+              const SizedBox(height: 12),
+              AppDropdown<String>(
                   initialValue: _status,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                       labelText: 'Estado',
-                      prefixIcon: Icon(Icons.info_outline_rounded)),
+                      helperText:
+                          'Solo las aulas disponibles se pueden reservar.',
+                      prefixIcon: context.hasLargeText
+                          ? null
+                          : const Icon(Icons.info_outline_rounded)),
                   items: const [
                     DropdownMenuItem(
                         value: 'available', child: Text('Disponible')),
@@ -435,44 +512,73 @@ class _ClassroomFormState extends State<_ClassroomForm> {
                   controller: _description,
                   maxLines: 3,
                   decoration: const InputDecoration(
-                      labelText: 'Descripción', alignLabelWithHint: true)),
+                      labelText: 'Descripción (opcional)',
+                      hintText: 'Ej.: Tiene mesas móviles y buena ventilación',
+                      hintMaxLines: 4,
+                      alignLabelWithHint: true)),
+              if (widget.room == null) ...[
+                const SizedBox(height: 12),
+                const ErrorBanner(
+                    'Quedará disponible de lunes a sábado, de 7:00 a. m. a 7:00 p. m. Puedes cambiarlo en Horarios y bloqueos.',
+                    color: AppColors.blue,
+                    icon: Icons.schedule_rounded),
+              ],
             ])),
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar')),
-          FilledButton(onPressed: _save, child: const Text('Guardar')),
-        ],
       );
 
+  /// Un aula con un tipo antiguo debe poder editarse sin perder su valor.
+  List<String> get _typeOptions => [
+        ...Catalogs.classroomTypes.keys,
+        if (_type != null && !Catalogs.classroomTypes.containsKey(_type))
+          _type!,
+      ];
+
+  String? _validateCode(String? value) {
+    final code = value?.trim().toUpperCase() ?? '';
+    if (code.isEmpty) return 'Campo obligatorio';
+    return RegExp(r'^[A-Z0-9]+-[A-Z0-9]+$').hasMatch(code)
+        ? null
+        : 'Usa letras o números, un guion y el número. Ej.: A-101';
+  }
+
   Widget _field(TextEditingController controller, String label, IconData icon,
-          {bool number = false}) =>
+          {bool number = false,
+          String? hint,
+          String? helper,
+          TextCapitalization capitalize = TextCapitalization.sentences,
+          FormFieldValidator<String>? validator}) =>
       TextFormField(
           controller: controller,
           keyboardType: number ? TextInputType.number : TextInputType.text,
-          decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)),
-          validator: (value) {
-            if (value?.trim().isEmpty ?? true) return 'Campo obligatorio';
-            if (number && (int.tryParse(value!) ?? 0) < 1) {
-              return 'Número inválido';
-            }
-            return null;
-          });
+          textCapitalization: capitalize,
+          decoration: InputDecoration(
+              labelText: label,
+              hintText: hint,
+              hintMaxLines: 2,
+              helperText: helper,
+              prefixIcon: context.hasLargeText ? null : Icon(icon)),
+          validator: validator ??
+              (value) {
+                if (value?.trim().isEmpty ?? true) return 'Campo obligatorio';
+                if (number && (int.tryParse(value!) ?? 0) < 1) {
+                  return 'Escribe un número mayor que 0';
+                }
+                return null;
+              });
 
-  void _save() {
-    if (!_key.currentState!.validate()) return;
-    Navigator.pop(context, {
+  Future<bool> _save() async {
+    if (!_key.currentState!.validate()) return false;
+    await widget.onSave({
       'code': _code.text.trim().toUpperCase(),
       'name': _name.text.trim(),
       'location': _location.text.trim(),
       'capacity': int.parse(_capacity.text),
-      'type': _type.text.trim(),
+      'type': _type,
       'description':
           _description.text.trim().isEmpty ? null : _description.text.trim(),
       'status': _status,
-      'is_active': true,
+      'is_active': widget.room?.isActive ?? true,
     });
+    return true;
   }
 }

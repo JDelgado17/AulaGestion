@@ -79,6 +79,10 @@ abstract final class AppTheme {
         errorBorder: border.copyWith(
             borderSide: const BorderSide(color: AppColors.danger)),
         labelStyle: const TextStyle(color: AppColors.muted),
+        // Siempre arriba y más pequeña: así el nombre del campo no se corta.
+        floatingLabelBehavior: FloatingLabelBehavior.always,
+        errorMaxLines: 5,
+        helperMaxLines: 6,
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
@@ -111,6 +115,8 @@ abstract final class AppTheme {
                   : AppColors.muted,
             )),
       ),
+      dialogTheme: const DialogThemeData(
+          insetPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 24)),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),

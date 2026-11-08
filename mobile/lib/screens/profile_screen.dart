@@ -54,11 +54,6 @@ class ProfileScreen extends StatelessWidget {
                     Icon(Icons.support_agent_rounded, color: AppColors.teal),
                 title: Text('Soporte'),
                 subtitle: Text(AppConfig.supportEmail)),
-            const Divider(height: 1, indent: 72),
-            const ListTile(
-                leading: Icon(Icons.shield_outlined, color: AppColors.success),
-                title: Text('Sesión segura'),
-                subtitle: Text('Token protegido en el dispositivo')),
           ]),
         ),
         const SizedBox(height: 20),
@@ -69,7 +64,7 @@ class ProfileScreen extends StatelessWidget {
           label: const Text('Cerrar sesión'),
         ),
         const SizedBox(height: 14),
-        const Text('AulaGestión · versión 1.0.0',
+        const Text('AulaGestión · versión ${AppConfig.appVersion}',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.muted, fontSize: 12)),
       ],
@@ -77,25 +72,20 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Future<void> _confirmLogout(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
+    final session = AppScope.of(context);
+    await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cerrar sesión'),
+      builder: (_) => AsyncFormDialog(
+        title: 'Cerrar sesión',
         content:
             const Text('¿Deseas salir de AulaGestión en este dispositivo?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancelar')),
-          FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Cerrar sesión'))
-        ],
+        submitLabel: 'Cerrar sesión',
+        onSubmit: () async {
+          await session.logout();
+          return true;
+        },
       ),
     );
-    if (confirmed == true && context.mounted) {
-      await AppScope.of(context).logout();
-    }
   }
 
   String _initials(String name) => name

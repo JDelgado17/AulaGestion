@@ -1,5 +1,21 @@
 # Registro de cambios
 
+## 1.2.0 - 2026-11-08
+
+- Alerta emergente cuando un aula reservada deja de estar disponible, incluso si el cambio se hizo directamente en la base de datos.
+- Historial de alertas y avisos con su estado (activa, resuelta, nuevo, leído) y contador en la barra inferior.
+- Las reservas afectadas indican que el aula no está disponible.
+- El administrador puede ver las aulas deshabilitadas y volver a habilitarlas.
+- Indicador de carga en todos los botones que esperan al servidor; los formularios permanecen abiertos hasta guardar y muestran el error sin perder lo escrito.
+- El botón de actualizar ahora consulta el servidor.
+- Textos completos y sin desbordes con cualquier tamaño de letra del sistema.
+- Mayor tiempo de espera para que el servidor gratuito alcance a despertar.
+- El inicio del profesor muestra primero su próxima reserva; el resumen numérico queda para el administrador.
+- Recordatorio cuando falta menos de un día para una reserva.
+- Inicio y alertas se actualizan de inmediato al guardar, sin recargar.
+- Formularios explicados con ejemplos y ayudas; código de aula con formato y tipo de aula, actividad y categoría elegidos de una lista.
+- Las aulas nuevas quedan con horario inicial, para que aparezcan en las búsquedas.
+
 ## 1.1.0 - 2026-11-02
 
 - Despliegue gratuito en la nube: API en Render (Dockerfile) y MySQL en Aiven con SSL.

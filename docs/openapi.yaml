@@ -266,9 +266,15 @@ paths:
   /notifications:
     get:
       security: [{sanctum: []}]
-      summary: Consultar notificaciones del usuario
+      summary: Consultar el historial de notificaciones y alertas del usuario
       responses:
         "200": {description: Notificaciones paginadas}
+  /notifications/alerts:
+    get:
+      security: [{sanctum: []}]
+      summary: Consultar no leídas y alertas de aulas que dejaron de estar disponibles
+      responses:
+        "200": {description: Contador de no leídas y alertas activas sin leer}
   /reports/summary:
     get:
       tags: [Administración, Inventario]

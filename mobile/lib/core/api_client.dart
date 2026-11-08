@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ApiException implements Exception {
@@ -15,12 +16,18 @@ class ApiException implements Exception {
 }
 
 class ApiClient {
+  // El servidor gratuito tarda cerca de un minuto en despertar.
+  static const _timeout = Duration(seconds: 75);
+
   ApiClient({required this.baseUrl, http.Client? httpClient})
       : _http = httpClient ?? http.Client();
 
   final String baseUrl;
   final http.Client _http;
   String? token;
+
+  /// Aumenta tras cada escritura exitosa, para que lo visible se actualice solo.
+  final ValueNotifier<int> changes = ValueNotifier(0);
 
   Future<dynamic> get(String path, {Map<String, dynamic>? query}) =>
       _send('GET', path, query: query);
@@ -63,27 +70,24 @@ class ApiClient {
         case 'POST':
           response = await _http
               .post(uri, headers: headers, body: encoded)
-              .timeout(const Duration(seconds: 12));
+              .timeout(_timeout);
           break;
         case 'PUT':
           response = await _http
               .put(uri, headers: headers, body: encoded)
-              .timeout(const Duration(seconds: 12));
+              .timeout(_timeout);
           break;
         case 'PATCH':
           response = await _http
               .patch(uri, headers: headers, body: encoded)
-              .timeout(const Duration(seconds: 12));
+              .timeout(_timeout);
           break;
         case 'DELETE':
-          response = await _http
-              .delete(uri, headers: headers)
-              .timeout(const Duration(seconds: 12));
+          response =
+              await _http.delete(uri, headers: headers).timeout(_timeout);
           break;
         default:
-          response = await _http
-              .get(uri, headers: headers)
-              .timeout(const Duration(seconds: 12));
+          response = await _http.get(uri, headers: headers).timeout(_timeout);
           break;
       }
 
@@ -112,6 +116,8 @@ class ApiClient {
           errors: flattenedErrors,
         );
       }
+
+      if (method != 'GET') changes.value++;
 
       if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
         return decoded['data'];

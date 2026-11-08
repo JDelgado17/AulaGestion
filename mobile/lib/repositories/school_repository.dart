@@ -9,9 +9,10 @@ class SchoolRepository {
   Future<Map<String, dynamic>> dashboard() async =>
       Map<String, dynamic>.from(await client.get('/dashboard'));
 
-  Future<List<Classroom>> classrooms({String? search, String? status}) async {
+  Future<List<Classroom>> classrooms(
+      {String? search, String? status, bool includeDisabled = false}) async {
     final raw = await client.get('/classrooms', query: {
-      'active_only': true,
+      if (!includeDisabled) 'active_only': true,
       if (search?.isNotEmpty == true) 'search': search,
       if (status?.isNotEmpty == true) 'status': status,
     });
@@ -102,6 +103,10 @@ class SchoolRepository {
 
   Future<List<Map<String, dynamic>>> notifications() async =>
       _records(await client.get('/notifications'));
+
+  /// Contador de no leídas y alertas de aulas que deben mostrarse al usuario.
+  Future<Map<String, dynamic>> pendingAlerts() async =>
+      Map<String, dynamic>.from(await client.get('/notifications/alerts'));
 
   Future<void> markNotificationRead(int id) =>
       client.patch('/notifications/$id/read');

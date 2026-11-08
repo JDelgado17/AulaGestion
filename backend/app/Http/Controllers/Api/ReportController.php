@@ -7,6 +7,7 @@ use App\Models\Classroom;
 use App\Models\InventoryItem;
 use App\Models\Reservation;
 use App\Models\User;
+use App\Services\ReservationAlertService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -49,9 +50,20 @@ class ReportController extends Controller
         ]);
     }
 
-    public function dashboard(Request $request)
+    public function dashboard(Request $request, ReservationAlertService $alerts)
     {
         $user = $request->user();
+        $alerts->syncFor($user);
+
+        $nextReservations = Reservation::with('classroom:id,code,name,location,capacity,status,is_active')
+            ->where('user_id', $user->id)
+            ->where('status', 'confirmed')
+            ->where('ends_at', '>', now())
+            ->orderBy('starts_at')
+            ->limit(3)
+            ->get();
+        $alerts->annotate($nextReservations);
+
         $baseReservations = Reservation::query();
         if (! $user->hasRole(User::ROLE_ADMIN)) {
             $baseReservations->where('user_id', $user->id);
@@ -64,6 +76,9 @@ class ReportController extends Controller
             'upcoming_reservations' => (clone $baseReservations)->where('starts_at', '>=', now())->where('status', 'confirmed')->count(),
             'inventory_alerts' => InventoryItem::whereIn('status', ['maintenance', 'damaged', 'out_of_service'])->count(),
             'unread_notifications' => $user->appNotifications()->whereNull('read_at')->count(),
+            'active_alerts' => $user->appNotifications()->where('type', ReservationAlertService::TYPE_UNAVAILABLE)->get()
+                ->filter(fn ($alert) => $alerts->isActive($alert))->count(),
+            'next_reservations' => $nextReservations,
         ]);
     }
 }

@@ -56,7 +56,8 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
     final isAdmin = AppScope.of(context).user!.role == 'admin';
     return Scaffold(
       appBar: AppBar(
-          title: Text(isAdmin ? 'Reservas institucionales' : 'Mis reservas'),
+          title: AppBarTitle(
+              isAdmin ? 'Reservas institucionales' : 'Mis reservas'),
           actions: [
             IconButton(
                 tooltip: _calendarView ? 'Ver lista' : 'Ver calendario',
@@ -68,25 +69,28 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
       body: PageBody(
         child: Column(children: [
           if (_calendarView) ...[_weekSelector(), const SizedBox(height: 14)],
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'all', label: Text('Todas')),
-                ButtonSegment(value: 'confirmed', label: Text('Confirmadas')),
-                ButtonSegment(value: 'cancelled', label: Text('Canceladas')),
-                ButtonSegment(value: 'completed', label: Text('Finalizadas'))
-              ],
-              selected: {_status},
-              showSelectedIcon: false,
-              onSelectionChanged: (value) {
-                setState(() {
-                  _status = value.first;
-                  _reservations = null;
-                });
-                _load();
-              },
-            ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Wrap(spacing: 8, runSpacing: 8, children: [
+              for (final filter in const {
+                'all': 'Todas',
+                'confirmed': 'Confirmadas',
+                'cancelled': 'Canceladas',
+                'completed': 'Finalizadas',
+              }.entries)
+                ChoiceChip(
+                  label: Text(filter.value),
+                  selected: _status == filter.key,
+                  showCheckmark: false,
+                  onSelected: (_) {
+                    setState(() {
+                      _status = filter.key;
+                      _reservations = null;
+                    });
+                    _load();
+                  },
+                ),
+            ]),
           ),
           const SizedBox(height: 18),
           Expanded(child: _content(isAdmin)),
@@ -134,20 +138,26 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                       color: selected ? AppColors.blue : Colors.transparent,
                       borderRadius: BorderRadius.circular(12)),
                   child: Column(children: [
-                    Text(
-                        DateFormat('E', 'es')
-                            .format(day)
-                            .substring(0, 1)
-                            .toUpperCase(),
-                        style: TextStyle(
-                            fontSize: 11,
-                            color:
-                                selected ? Colors.white70 : AppColors.muted)),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                          DateFormat('E', 'es')
+                              .format(day)
+                              .substring(0, 1)
+                              .toUpperCase(),
+                          style: TextStyle(
+                              fontSize: 11,
+                              color:
+                                  selected ? Colors.white70 : AppColors.muted)),
+                    ),
                     const SizedBox(height: 4),
-                    Text('${day.day}',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            color: selected ? Colors.white : AppColors.text)),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text('${day.day}',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w800,
+                              color: selected ? Colors.white : AppColors.text)),
+                    ),
                     const SizedBox(height: 5),
                     CircleAvatar(
                         radius: 3,
@@ -202,14 +212,21 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Expanded(
-                child: Text(
-                    '${item.classroom?.code ?? 'Aula'} · ${item.classroom?.name ?? ''}',
-                    style: Theme.of(context).textTheme.titleMedium)),
-            StatusPill(status: item.status)
-          ]),
+          Text(
+              '${item.classroom?.code ?? 'Aula'} · ${item.classroom?.name ?? ''}',
+              style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 6),
+          item.availabilityIssue == null
+              ? StatusPill(status: item.status)
+              : const StatusPill(
+                  status: 'out_of_service', label: 'Aula no disponible'),
           const SizedBox(height: 12),
+          if (item.availabilityIssue != null) ...[
+            ErrorBanner(
+                'Esta reserva ya no se puede usar: ${item.availabilityIssue}. Cancélala o busca otra aula.',
+                icon: Icons.warning_amber_rounded),
+            const SizedBox(height: 12),
+          ],
           _line(Icons.calendar_today_outlined, date),
           _line(Icons.schedule_rounded, time),
           _line(Icons.groups_2_outlined,
@@ -247,38 +264,33 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
 
   Future<void> _cancel(Reservation item) async {
     final controller = TextEditingController();
-    final reason = await showDialog<String>(
+    final cancelled = await showDialog<bool>(
         context: context,
-        builder: (dialogContext) => AlertDialog(
-                title: const Text('Cancelar reserva'),
-                content: TextField(
-                    controller: controller,
-                    autofocus: true,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                        labelText: 'Motivo de cancelación',
-                        hintText: 'Escribe al menos 5 caracteres',
-                        alignLabelWithHint: true)),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(dialogContext),
-                      child: const Text('Volver')),
-                  FilledButton(
-                      onPressed: () {
-                        if (controller.text.trim().length >= 5) {
-                          Navigator.pop(dialogContext, controller.text.trim());
-                        }
-                      },
-                      child: const Text('Confirmar cancelación'))
-                ]));
+        builder: (_) => AsyncFormDialog(
+            title: 'Cancelar reserva',
+            cancelLabel: 'Volver',
+            submitLabel: 'Confirmar cancelación',
+            content: TextField(
+                controller: controller,
+                autofocus: true,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                    labelText: 'Motivo de cancelación',
+                    hintText: 'Escribe al menos 5 caracteres',
+                    alignLabelWithHint: true)),
+            onSubmit: () async {
+              final reason = controller.text.trim();
+              if (reason.length < 5) {
+                throw const FormMessage(
+                    'Escribe un motivo de al menos 5 caracteres.');
+              }
+              await widget.repository.cancelReservation(item.id, reason);
+              await _load();
+              return true;
+            }));
     controller.dispose();
-    if (reason == null) return;
-    try {
-      await widget.repository.cancelReservation(item.id, reason);
-      await _load();
-      if (mounted) showMessage(context, 'Reserva cancelada y franja liberada.');
-    } catch (error) {
-      if (mounted) showMessage(context, formatApiError(error), error: true);
+    if (cancelled == true && mounted) {
+      showMessage(context, 'Reserva cancelada. El horario quedó libre.');
     }
   }
 }

@@ -153,6 +153,7 @@ class Reservation {
     this.classroom,
     this.user,
     this.cancellationReason,
+    this.availabilityIssue,
   });
 
   final int id;
@@ -165,6 +166,9 @@ class Reservation {
   final Classroom? classroom;
   final AppUser? user;
   final String? cancellationReason;
+
+  /// Motivo por el que el aula ya no está disponible para esta reserva vigente.
+  final String? availabilityIssue;
 
   factory Reservation.fromJson(Map<String, dynamic> json) => Reservation(
         id: _asInt(json['id']),
@@ -184,6 +188,7 @@ class Reservation {
                 'role': json['user']['role'] ?? 'professor'
               })
             : null,
+        availabilityIssue: json['availability_issue']?.toString(),
         cancellationReason: json['cancellation_reason']?.toString(),
       );
 }

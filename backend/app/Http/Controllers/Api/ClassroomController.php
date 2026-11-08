@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Classroom;
+use App\Models\ClassroomSchedule;
 use App\Services\AuditService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -31,6 +32,7 @@ class ClassroomController extends Controller
     public function store(Request $request)
     {
         $classroom = Classroom::create($this->validated($request));
+        $this->createDefaultSchedule($classroom);
         $this->audit->record($request, 'classroom.created', $classroom, null, $classroom->toArray());
 
         return $this->success($classroom, 'Aula registrada correctamente.', 201);
@@ -62,17 +64,37 @@ class ClassroomController extends Controller
         return $this->success($classroom, 'Aula deshabilitada sin eliminar su historial.');
     }
 
+    /** Sin horario el aula nunca aparecería en las búsquedas: inicia con la jornada habitual. */
+    private function createDefaultSchedule(Classroom $classroom): void
+    {
+        foreach (range(1, 6) as $weekday) {
+            ClassroomSchedule::create([
+                'classroom_id' => $classroom->id,
+                'weekday' => $weekday,
+                'start_time' => '07:00',
+                'end_time' => '19:00',
+                'is_active' => true,
+            ]);
+        }
+    }
+
     private function validated(Request $request, ?Classroom $classroom = null): array
     {
         return $request->validate([
-            'code' => ['required', 'string', 'max:30', Rule::unique('classrooms', 'code')->ignore($classroom?->id)],
+            'code' => [
+                'required', 'string', 'max:30', 'regex:/^[A-Z0-9]+-[A-Z0-9]+$/',
+                Rule::unique('classrooms', 'code')->ignore($classroom?->id),
+            ],
             'name' => ['required', 'string', 'max:120'],
             'location' => ['required', 'string', 'max:160'],
             'capacity' => ['required', 'integer', 'min:1', 'max:1000'],
-            'type' => ['required', 'string', 'max:60'],
+            'type' => ['required', Rule::in([...Classroom::TYPES, $classroom?->type])],
             'description' => ['nullable', 'string', 'max:1000'],
             'status' => ['required', Rule::in(['available', 'maintenance', 'out_of_service'])],
             'is_active' => ['sometimes', 'boolean'],
+        ], [
+            'code.regex' => 'El código debe tener letras o números, un guion y un número. Ej.: A-101.',
+            'code.unique' => 'Ya existe un aula con ese código.',
         ]);
     }
 }

@@ -4,15 +4,37 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AppNotification;
+use App\Services\ReservationAlertService;
 use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
+    public function __construct(private readonly ReservationAlertService $alerts) {}
+
     public function index(Request $request)
     {
+        $this->alerts->syncFor($request->user());
+
         return $this->success(
             $request->user()->appNotifications()->latest()->paginate(30)
         );
+    }
+
+    /** Consulta periódica de la app: contador de no leídas y alertas que deben saltar. */
+    public function alerts(Request $request)
+    {
+        $user = $request->user();
+        $this->alerts->syncFor($user);
+
+        $unread = $user->appNotifications()->whereNull('read_at')->latest()->get();
+
+        return $this->success([
+            'unread_count' => $unread->count(),
+            'alerts' => $unread
+                ->where('type', ReservationAlertService::TYPE_UNAVAILABLE)
+                ->filter(fn (AppNotification $alert) => $this->alerts->isActive($alert))
+                ->values(),
+        ]);
     }
 
     public function markRead(Request $request, AppNotification $notification)

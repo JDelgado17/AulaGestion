@@ -34,6 +34,7 @@ Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     Route::get('/reservations/{reservation}', [ReservationController::class, 'show']);
 
     Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/alerts', [NotificationController::class, 'alerts']);
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markRead']);
 

@@ -69,7 +69,7 @@ class ModulesScreen extends StatelessWidget {
       return [
         ModuleCard(
             title: 'Buscar y reservar',
-            subtitle: 'Obtén recomendaciones explicables según tu actividad.',
+            subtitle: 'Te sugerimos el aula ideal según lo que necesitas.',
             icon: Icons.auto_awesome_outlined,
             color: AppColors.success,
             onTap: () => open(SearchScreen(repository: repository))),

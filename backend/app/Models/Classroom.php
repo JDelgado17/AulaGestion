@@ -10,6 +10,11 @@ class Classroom extends Model
 {
     use HasFactory;
 
+    /** Debe coincidir con el catálogo de la app (mobile/lib/core/catalogs.dart). */
+    public const TYPES = [
+        'Clase interactiva', 'Multimedia', 'Informática', 'Laboratorio', 'Actividad lúdica', 'Auditorio',
+    ];
+
     protected $fillable = [
         'code', 'name', 'location', 'capacity', 'type', 'description', 'status', 'is_active',
     ];

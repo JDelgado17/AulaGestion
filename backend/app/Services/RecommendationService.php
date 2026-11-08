@@ -8,6 +8,17 @@ use Illuminate\Database\Eloquent\Builder;
 
 class RecommendationService
 {
+    /** Tipos de aula adecuados para cada actividad que ofrece la app. */
+    private const ACTIVITY_ROOM_TYPES = [
+        'Clase' => ['Clase interactiva', 'Multimedia'],
+        'Taller' => ['Clase interactiva', 'Actividad lúdica'],
+        'Presentación o video' => ['Multimedia', 'Auditorio'],
+        'Trabajo en computadores' => ['Informática'],
+        'Práctica de laboratorio' => ['Laboratorio'],
+        'Actividad lúdica' => ['Actividad lúdica'],
+        'Reunión o evento' => ['Auditorio', 'Clase interactiva'],
+    ];
+
     public function recommend(array $criteria): array
     {
         $startsAt = Carbon::parse($criteria['starts_at']);
@@ -128,7 +139,9 @@ class RecommendationService
         $score += max(0, 25 - min(25, (int) round($capacityGap / 2)));
         $score += $required === [] ? 10 : (int) round(10 * (count($required) - count($missingRequired)) / count($required));
         $score += $optional === [] ? 5 : (int) round(5 * count($presentOptional) / count($optional));
-        $score += mb_stripos($room->type, $activityType) !== false ? 5 : 0;
+        $suitsActivity = in_array($room->type, self::ACTIVITY_ROOM_TYPES[$activityType] ?? [], true)
+            || mb_stripos($room->type, $activityType) !== false;
+        $score += $suitsActivity ? 5 : 0;
         $score = max(0, min(100, $score - count($missingRequired) * 20));
 
         $reasons = [
@@ -136,6 +149,9 @@ class RecommendationService
             'Disponible durante toda la franja solicitada',
         ];
 
+        if ($suitsActivity) {
+            $reasons[] = "Aula de tipo {$room->type}, adecuada para la actividad";
+        }
         if ($required !== [] && $missingRequired === []) {
             $reasons[] = 'Incluye todos los recursos obligatorios';
         }
