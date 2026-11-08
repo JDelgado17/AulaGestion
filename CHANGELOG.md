@@ -1,5 +1,12 @@
 # Registro de cambios
 
+## 1.2.1 - 2026-11-08
+
+- Aviso breve que no interrumpe cuando un aula vuelve a estar disponible o una reserva está próxima; queda sin leer en el historial.
+- La alerta de aula no disponible se cierra sola si el problema desaparece mientras está abierta.
+- Una alerta resuelta ya no suma como sin leer junto con su aviso.
+- Con la app en segundo plano no se consulta al servidor, para no perder avisos ni gastar datos.
+
 ## 1.2.0 - 2026-11-08
 
 - Alerta emergente cuando un aula reservada deja de estar disponible, incluso si el cambio se hizo directamente en la base de datos.

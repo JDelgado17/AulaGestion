@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
@@ -27,19 +28,24 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
 
   final _dashboard = ReloadHandle();
   final _notifications = ReloadHandle();
+  final _activeAlerts = ValueNotifier<List<Map<String, dynamic>>>(const []);
   Timer? _alertsTimer;
   Timer? _changesDebounce;
   int _index = 0;
   int _unread = 0;
   bool _checkingAlerts = false;
   bool _alertsDialogOpen = false;
+  bool _inForeground = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.repository.client.changes.addListener(_onDataChanged);
-    _alertsTimer = Timer.periodic(_alertsInterval, (_) => _checkAlerts());
+    // En segundo plano no se consulta: un aviso se perdería sin que nadie lo vea.
+    _alertsTimer = Timer.periodic(_alertsInterval, (_) {
+      if (_inForeground) _checkAlerts();
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkAlerts());
   }
 
@@ -49,12 +55,20 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     widget.repository.client.changes.removeListener(_onDataChanged);
     _alertsTimer?.cancel();
     _changesDebounce?.cancel();
+    _activeAlerts.dispose();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _reloadAll();
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      _inForeground = false;
+    }
+    if (state == AppLifecycleState.resumed) {
+      _inForeground = true;
+      _reloadAll();
+    }
   }
 
   /// Algo se guardó en cualquier pantalla: el inicio y las alertas se actualizan
@@ -86,18 +100,21 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
       final result = await widget.repository.pendingAlerts();
       if (!mounted) return null;
       final unread = (result['unread_count'] as num?)?.toInt() ?? 0;
-      if (unread != _unread) {
+      final alerts = _records(result['alerts']);
+      final notices = _records(result['notices']);
+      final alertsChanged = !setEquals(_ids(alerts), _ids(_activeAlerts.value));
+      // Una alerta resuelta puede dejar igual el contador: también se compara
+      // qué alertas hay, para que el inicio y el historial no queden atrasados.
+      if (unread != _unread || alertsChanged || notices.isNotEmpty) {
         setState(() => _unread = unread);
         unawaited(_notifications.run());
         unawaited(_dashboard.run());
       }
-      final alerts = (result['alerts'] as List? ?? [])
-          .whereType<Map>()
-          .map((item) => Map<String, dynamic>.from(item))
-          .toList();
+      _activeAlerts.value = alerts;
       if (alerts.isNotEmpty && !_alertsDialogOpen) {
-        unawaited(_showAlerts(alerts));
+        unawaited(_showAlerts());
       }
+      _announce(notices);
       return null;
     } catch (error) {
       return error;
@@ -106,13 +123,41 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _showAlerts(List<Map<String, dynamic>> alerts) async {
+  List<Map<String, dynamic>> _records(Object? value) => (value as List? ?? [])
+      .whereType<Map>()
+      .map((item) => Map<String, dynamic>.from(item))
+      .toList();
+
+  Set<Object?> _ids(List<Map<String, dynamic>> items) =>
+      items.map((item) => item['id']).toSet();
+
+  void _announce(List<Map<String, dynamic>> notices) {
+    if (notices.isEmpty) return;
+    final single = notices.length == 1 ? notices.first : null;
+    final isReminder = single?['type'] == 'reservation_reminder';
+    showNotice(context,
+        title: single?['title']?.toString() ?? 'Novedades en tus reservas',
+        message: single?['message']?.toString() ??
+            'Tienes ${notices.length} avisos nuevos.',
+        icon: isReminder
+            ? Icons.alarm_rounded
+            : Icons.check_circle_outline_rounded,
+        color: isReminder ? AppColors.blue : AppColors.success,
+        onView: _openAlerts);
+  }
+
+  void _openAlerts() {
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    _select(2);
+  }
+
+  Future<void> _showAlerts() async {
     _alertsDialogOpen = true;
     final openReservations = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
-        builder: (_) =>
-            _RoomAlertsDialog(alerts: alerts, repository: widget.repository));
+        builder: (_) => _RoomAlertsDialog(
+            alerts: _activeAlerts, repository: widget.repository));
     _alertsDialogOpen = false;
     if (!mounted) return;
     if (openReservations == true) {
@@ -226,12 +271,13 @@ class _MainShellState extends State<MainShell> with WidgetsBindingObserver {
   }
 }
 
-/// Alerta que salta sobre cualquier pantalla. Solo se cierra al confirmarla, y
-/// eso la marca como leída: sigue en el historial de Avisos con su estado.
+/// Alerta que salta sobre cualquier pantalla. Se confirma para marcarla como
+/// leída, y se cierra sola si el problema desaparece mientras está abierta: una
+/// alerta que ya no es cierta no debe seguir en pantalla.
 class _RoomAlertsDialog extends StatefulWidget {
   const _RoomAlertsDialog({required this.alerts, required this.repository});
 
-  final List<Map<String, dynamic>> alerts;
+  final ValueListenable<List<Map<String, dynamic>>> alerts;
   final SchoolRepository repository;
 
   @override
@@ -242,6 +288,26 @@ class _RoomAlertsDialogState extends State<_RoomAlertsDialog> {
   bool _busy = false;
   String? _error;
 
+  @override
+  void initState() {
+    super.initState();
+    widget.alerts.addListener(_closeIfResolved);
+  }
+
+  @override
+  void dispose() {
+    widget.alerts.removeListener(_closeIfResolved);
+    super.dispose();
+  }
+
+  void _closeIfResolved() {
+    // Si ya se está cerrando, cerrar otra vez sacaría la pantalla de abajo.
+    final isOpen = ModalRoute.of(context)?.isCurrent ?? false;
+    if (widget.alerts.value.isEmpty && isOpen && !_busy) {
+      Navigator.pop(context, false);
+    }
+  }
+
   Future<void> _acknowledge(bool openReservations) async {
     if (_busy) return;
     setState(() {
@@ -249,7 +315,7 @@ class _RoomAlertsDialogState extends State<_RoomAlertsDialog> {
       _error = null;
     });
     try {
-      await Future.wait(widget.alerts.map((alert) =>
+      await Future.wait(widget.alerts.value.map((alert) =>
           widget.repository.markNotificationRead(alert['id'] as int)));
       if (mounted) Navigator.pop(context, openReservations);
     } catch (error) {
@@ -260,40 +326,42 @@ class _RoomAlertsDialogState extends State<_RoomAlertsDialog> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final count = widget.alerts.length;
-    return PopScope(
-      canPop: false,
-      child: AlertDialog(
-        icon: const Icon(Icons.warning_amber_rounded,
-            color: AppColors.danger, size: 44),
-        title: Text(
-            count == 1 ? 'Aula no disponible' : '$count aulas no disponibles',
-            textAlign: TextAlign.center),
-        content: SizedBox(
-          width: 480,
-          child: SingleChildScrollView(
-            child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (final alert in widget.alerts)
-                    Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Text(alert['message']?.toString() ?? '')),
-                  if (_error != null) ErrorBanner(_error!),
-                ]),
+  Widget build(BuildContext context) => PopScope(
+        canPop: false,
+        child: ValueListenableBuilder(
+          valueListenable: widget.alerts,
+          builder: (context, alerts, _) => AlertDialog(
+            icon: const Icon(Icons.warning_amber_rounded,
+                color: AppColors.danger, size: 44),
+            title: Text(
+                alerts.length == 1
+                    ? 'Aula no disponible'
+                    : '${alerts.length} aulas no disponibles',
+                textAlign: TextAlign.center),
+            content: SizedBox(
+              width: 480,
+              child: SingleChildScrollView(
+                child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      for (final alert in alerts)
+                        Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Text(alert['message']?.toString() ?? '')),
+                      if (_error != null) ErrorBanner(_error!),
+                    ]),
+              ),
+            ),
+            actions: [
+              LoadingButton(
+                  kind: LoadingButtonKind.text,
+                  label: 'Ver mis reservas',
+                  onPressed: () => _acknowledge(true)),
+              LoadingButton(
+                  label: 'Entendido', onPressed: () => _acknowledge(false)),
+            ],
           ),
         ),
-        actions: [
-          LoadingButton(
-              kind: LoadingButtonKind.text,
-              label: 'Ver mis reservas',
-              onPressed: () => _acknowledge(true)),
-          LoadingButton(
-              label: 'Entendido', onPressed: () => _acknowledge(false)),
-        ],
-      ),
-    );
-  }
+      );
 }

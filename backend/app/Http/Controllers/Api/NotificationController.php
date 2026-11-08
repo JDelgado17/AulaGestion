@@ -34,6 +34,7 @@ class NotificationController extends Controller
                 ->where('type', ReservationAlertService::TYPE_UNAVAILABLE)
                 ->filter(fn (AppNotification $alert) => $this->alerts->isActive($alert))
                 ->values(),
+            'notices' => $this->alerts->takeNotices($unread),
         ]);
     }
 

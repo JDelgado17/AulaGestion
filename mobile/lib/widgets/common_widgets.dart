@@ -626,6 +626,39 @@ void showMessage(BuildContext context, String message, {bool error = false}) {
   ));
 }
 
+/// Aviso que informa sin interrumpir, para buenas noticias y recordatorios. Lo
+/// que exige una decisión del usuario va en un diálogo.
+void showNotice(BuildContext context,
+    {required String title,
+    required String message,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onView}) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(SnackBar(
+      duration: const Duration(seconds: 8),
+      backgroundColor: color,
+      action: SnackBarAction(
+          label: 'Ver', textColor: Colors.white, onPressed: onView),
+      content: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(icon, color: Colors.white),
+        const SizedBox(width: 12),
+        Expanded(
+            child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+              Text(title,
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 2),
+              Text(message, style: const TextStyle(color: Colors.white)),
+            ])),
+      ]),
+    ));
+}
+
 String formatApiError(Object error) {
   final text = error.toString();
   return text.startsWith('ApiException: ') ? text.substring(14) : text;

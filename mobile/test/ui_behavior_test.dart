@@ -49,6 +49,17 @@ final _item = {
   'classroom': _room,
 };
 
+const _restoredNotice = {
+  'id': 11,
+  'title': 'Aula disponible de nuevo',
+  'message':
+      'LAB-201 volvió a estar disponible y tu reserva del 10/11/2026 de 08:00 a 10:00 sigue confirmada.',
+  'type': 'classroom_restored',
+  'read_at': null,
+  'created_at': '2026-11-08T12:00:00-05:00',
+  'metadata': {'reservation_id': 3},
+};
+
 const _alert = {
   'id': 7,
   'title': 'Aula no disponible',
@@ -77,12 +88,17 @@ Map<String, dynamic> _reservationJson() => {
       'availability_issue': 'el aula fue deshabilitada',
     };
 
-Object? _response(http.Request request, {required bool withAlerts}) {
+Object? _response(
+  http.Request request, {
+  required bool withAlerts,
+  bool withNotice = false,
+}) {
   final path = request.url.path;
   if (path.endsWith('/notifications/alerts')) {
     return {
       'unread_count': withAlerts ? 1 : 0,
       'alerts': withAlerts ? [_alert] : [],
+      'notices': withNotice ? [_restoredNotice] : [],
     };
   }
   if (path.endsWith('/notifications')) {
@@ -470,6 +486,40 @@ void main() {
           await _open(tester, ReportsScreen(repository: _repository()));
         });
 
+        testWidgets('aviso de aula disponible de nuevo', (tester) async {
+          await configure(tester);
+          await tester.pumpWidget(
+            _app(
+              MainShell(
+                repository: SchoolRepository(
+                  ApiClient(
+                    baseUrl: 'http://test/api',
+                    httpClient: MockClient(
+                      (request) async => http.Response.bytes(
+                        utf8.encode(
+                          jsonEncode({
+                            'data': _response(
+                              request,
+                              withAlerts: false,
+                              withNotice: true,
+                            ),
+                          }),
+                        ),
+                        200,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 500));
+          expect(find.text('Aula disponible de nuevo'), findsOneWidget);
+          _expectNoCutText(tester);
+          await tester.pumpWidget(const SizedBox());
+        });
+
         testWidgets('alerta emergente de aula no disponible', (tester) async {
           await configure(tester);
           await _open(
@@ -715,6 +765,99 @@ void main() {
   });
 
   group('alertas:', () {
+    var noticeServed = false;
+
+    SchoolRepository scripted(
+      Map<String, Object?> Function() state,
+    ) =>
+        SchoolRepository(
+          ApiClient(
+            baseUrl: 'http://test/api',
+            httpClient: MockClient((request) async {
+              final current = state();
+              // El servidor anuncia cada aviso una sola vez.
+              final firstNotice = !noticeServed;
+              if (request.url.path.endsWith('/notifications/alerts')) {
+                noticeServed = noticeServed || current['notice'] == true;
+              }
+              return http.Response.bytes(
+                utf8.encode(
+                  jsonEncode({
+                    'data': _response(
+                      request,
+                      withAlerts: current['alerts'] == true,
+                      withNotice: current['notice'] == true && firstNotice,
+                    ),
+                  }),
+                ),
+                200,
+              );
+            }),
+          ),
+        );
+
+    testWidgets('la alerta se cierra sola y avisa al reactivarse el aula', (
+      tester,
+    ) async {
+      noticeServed = false;
+      var state = <String, Object?>{'alerts': true, 'notice': false};
+      await _open(tester, MainShell(repository: scripted(() => state)));
+      expect(find.byType(AlertDialog), findsOneWidget);
+
+      state = {'alerts': false, 'notice': true};
+      await tester.pump(const Duration(seconds: 31));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.text('Aula disponible de nuevo'), findsOneWidget);
+      expect(find.text('Ver'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('el aviso no interrumpe y "Ver" lleva a Alertas', (
+      tester,
+    ) async {
+      noticeServed = false;
+      var state = <String, Object?>{'alerts': false, 'notice': false};
+      await _open(tester, MainShell(repository: scripted(() => state)));
+
+      state = {'alerts': false, 'notice': true};
+      await tester.pump(const Duration(seconds: 31));
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(find.byType(AlertDialog), findsNothing);
+      state = {'alerts': false, 'notice': false};
+      await tester.tap(find.text('Ver'));
+      await tester.pumpAndSettle();
+      expect(find.text('Requieren tu atención'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('en segundo plano no consulta y al volver sí', (tester) async {
+      var alertCalls = 0;
+      await _open(
+        tester,
+        MainShell(
+          repository: _repository(
+            hook: (request) async {
+              if (request.url.path.endsWith('/notifications/alerts')) {
+                alertCalls++;
+              }
+            },
+          ),
+        ),
+      );
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      final before = alertCalls;
+      await tester.pump(const Duration(seconds: 61));
+      expect(alertCalls, before);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      expect(alertCalls, greaterThan(before));
+      await tester.pumpWidget(const SizedBox());
+    });
+
     testWidgets('confirmar la alerta la marca como leída y la cierra', (
       tester,
     ) async {

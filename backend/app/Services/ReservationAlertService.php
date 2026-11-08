@@ -83,6 +83,21 @@ class ReservationAlertService
         }
     }
 
+    /**
+     * Avisos que la app debe mostrar una sola vez sin interrumpir: se marcan como
+     * anunciados pero siguen sin leer en el historial.
+     */
+    public function takeNotices(Collection $unread): Collection
+    {
+        return $unread
+            ->whereIn('type', [self::TYPE_RESTORED, self::TYPE_REMINDER])
+            ->filter(fn (AppNotification $notice) => ! isset($notice->metadata['announced_at']))
+            ->values()
+            ->each(fn (AppNotification $notice) => $notice->update([
+                'metadata' => [...$notice->metadata, 'announced_at' => now()->toIso8601String()],
+            ]));
+    }
+
     public function isActive(AppNotification $alert): bool
     {
         return ($alert->metadata['alert_state'] ?? null) === self::STATE_ACTIVE;
@@ -163,7 +178,9 @@ class ReservationAlertService
 
     private function resolve(AppNotification $alert): void
     {
+        // Queda leída: la novedad la cuenta el aviso de "aula disponible de nuevo".
         $alert->update([
+            'read_at' => $alert->read_at ?? now(),
             'metadata' => [...$alert->metadata, 'alert_state' => self::STATE_RESOLVED, 'resolved_at' => now()->toIso8601String()],
         ]);
     }

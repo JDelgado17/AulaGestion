@@ -91,10 +91,35 @@ class ReservationAlertTest extends TestCase
 
         $this->getJson('/api/notifications/alerts')
             ->assertJsonCount(0, 'data.alerts')
-            ->assertJsonPath('data.unread_count', 2);
+            ->assertJsonPath('data.unread_count', 1)
+            ->assertJsonCount(1, 'data.notices')
+            ->assertJsonPath('data.notices.0.type', 'classroom_restored');
         $alert = AppNotification::where('type', 'classroom_unavailable')->first();
         $this->assertSame('resolved', $alert->metadata['alert_state']);
+        $this->assertNotNull($alert->read_at);
         $this->assertTrue(AppNotification::where('type', 'classroom_restored')->exists());
+    }
+
+    public function test_notice_is_announced_once_but_stays_unread_in_history(): void
+    {
+        $this->room->update(['status' => 'out_of_service']);
+        $this->getJson('/api/notifications/alerts');
+        $this->room->update(['status' => 'available']);
+
+        $this->getJson('/api/notifications/alerts')->assertJsonCount(1, 'data.notices');
+
+        $this->getJson('/api/notifications/alerts')
+            ->assertJsonCount(0, 'data.notices')
+            ->assertJsonPath('data.unread_count', 1);
+    }
+
+    public function test_reminder_is_announced_when_the_reservation_is_near(): void
+    {
+        $this->travelTo($this->reservation->starts_at->copy()->subHours(5));
+
+        $this->getJson('/api/notifications/alerts')
+            ->assertJsonCount(1, 'data.notices')
+            ->assertJsonPath('data.notices.0.type', 'reservation_reminder');
     }
 
     public function test_cancelled_reservation_resolves_the_alert_without_restored_notice(): void

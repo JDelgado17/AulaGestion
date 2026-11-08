@@ -272,9 +272,9 @@ paths:
   /notifications/alerts:
     get:
       security: [{sanctum: []}]
-      summary: Consultar no leídas y alertas de aulas que dejaron de estar disponibles
+      summary: Consultar no leídas, alertas de aulas y avisos por anunciar
       responses:
-        "200": {description: Contador de no leídas y alertas activas sin leer}
+        "200": {description: Contador de no leídas, alertas activas sin leer y avisos nuevos (aula disponible de nuevo o reserva próxima)}
   /reports/summary:
     get:
       tags: [Administración, Inventario]
