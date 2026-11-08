@@ -6,7 +6,7 @@ Aplicativo móvil para gestionar inventario, buscar, recomendar y reservar aulas
 
 - `mobile/`: aplicación Flutter con Material 3, navegación y permisos por rol.
 - `backend/`: API REST Laravel 13 con Sanctum, validaciones, auditoría y MySQL.
-- `docs/`: arquitectura, endpoints, manual de instalación, manual de usuario y matriz de trazabilidad.
+- `docs/`: documentación final en APA 7 (arquitectura, despliegue, manuales y trazabilidad), OpenAPI y plan de pruebas.
 - `postman/`: colección y entorno para probar la API.
 - `docker-compose.yml`: MySQL y phpMyAdmin para desarrollo local.
 
@@ -139,4 +139,4 @@ Modifique `mobile/lib/core/app_config.dart` para cambiar nombre, sigla, textos y
 - Julián Andrés Ceballos Eraso: backend, datos y reglas de negocio.
 - David Esteban Ortiz Ortiz: Flutter, interfaces y experiencia de usuario.
 
-La guía completa está en `docs/GUIA_TECNICA_Y_USUARIO.md`.
+La documentación completa (APA 7) está en `docs/AulaGestion_Documentacion_Final_APA7.pdf`, con su versión editable en Word.

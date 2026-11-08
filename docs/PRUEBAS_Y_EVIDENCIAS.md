@@ -2,9 +2,9 @@
 
 ## Uso
 
-Ejecute primero las pruebas automatizadas y después los diez casos de aceptación. Guarde capturas en una carpeta `evidencias/` del repositorio con nombres como `CA01_login_profesor.png`.
+Ejecute primero las pruebas automatizadas y después los doce casos de aceptación. Guarde capturas en una carpeta `evidencias/` del repositorio con nombres como `CA01_login_profesor.png`.
 
-> Estado inicial: los casos automatizados están implementados. La ejecución debe realizarse en un equipo con PHP 8.3, Composer y Flutter instalados.
+> Versión 1.2.1. La integración continua de GitHub Actions ejecuta estas pruebas en cada push o pull request hacia `main` y `develop`.
 
 ## Pruebas automatizadas
 
@@ -13,7 +13,10 @@ Ejecute primero las pruebas automatizadas y después los diez casos de aceptaci�
 | `backend/tests/Feature/AuthTest.php` | Acceso correcto, token, rol y rechazo de cuenta deshabilitada. |
 | `backend/tests/Feature/RecommendationTest.php` | Exclusión de aula sin recurso obligatorio. |
 | `backend/tests/Feature/ReservationConflictTest.php` | Rechazo HTTP 409 y ausencia de segundo registro superpuesto. |
+| `backend/tests/Feature/ClassroomRegistrationTest.php` | Aula nueva visible en búsquedas, formato del código, tipo del catálogo y afinidad con la actividad (5 casos). |
+| `backend/tests/Feature/ReservationAlertTest.php` | Ciclo de alertas: creación sin duplicados, cambios directos en la base de datos, resolución, avisos, recordatorio y aislamiento entre usuarios (12 casos). |
 | `mobile/test/domain_models_test.dart` | Conversión segura de JSON de aula, inventario y recomendación. |
+| `mobile/test/ui_behavior_test.dart` | Pantallas sin desbordes en varios anchos y tamaños de letra, indicadores de carga, errores dentro del formulario, inicio por rol, alertas y avisos, pausa en segundo plano. |
 
 Comandos:
 
@@ -39,7 +42,9 @@ flutter test
 | CA-07 | Reserva futura | Cancelar con un motivo y volver a buscar | Estado cancelado y franja disponible | Antes/después |
 | CA-08 | Elemento existente | Registrar daño y revisar historial | Usuario, fecha y descripción conservados | Historial de novedades |
 | CA-09 | App abierta | Detener Laravel y actualizar una lista | Mensaje de red sin cierre inesperado | Mensaje visible |
-| CA-10 | Repositorio limpio | Seguir README desde una copia nueva | API, BD y app se ejecutan | Terminales y pantalla login |
+| CA-10 | APK 1.2.1 instalado | Iniciar sesión contra la API pública en Render | La app funciona con datos móviles o cualquier Wi-Fi | Pantalla de inicio |
+| CA-11 | Reserva futura confirmada | Poner el aula en mantenimiento y luego habilitarla | Alerta emergente; al habilitar se resuelve y llega el aviso | Alerta e historial |
+| CA-12 | Reserva en menos de 24 h | Abrir la app | Aviso «Tu reserva es pronto» una sola vez | Aviso visible |
 
 ## Prueba de permisos
 
@@ -76,4 +81,4 @@ Compruebe en Postman:
 
 | Fecha | Versión | Responsable | Backend | Flutter analyze | Flutter test | Casos manuales | Observaciones |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| ____ | 1.0.0 | ____ | ____/____ | Aprobado/Pendiente | ____/____ | ____/10 | ____ |
+| ____ | 1.2.1 | ____ | ____/21 | Aprobado/Pendiente | ____/____ | ____/12 | ____ |

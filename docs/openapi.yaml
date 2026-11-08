@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: AulaGestión API
-  version: 1.0.0
+  version: 1.2.1
   description: API REST para inventario, disponibilidad, recomendación y reserva de aulas.
 servers:
   - url: http://127.0.0.1:8000/api
